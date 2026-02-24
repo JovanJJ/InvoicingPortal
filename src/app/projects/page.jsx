@@ -4,6 +4,8 @@ import DashboardStats from "@/components/DashboardStats";
 export default function Home() {
 
   return(
-   123
+    <main className="bg-white">
+      <DashboardStats />
+    </main>
   )
 }
