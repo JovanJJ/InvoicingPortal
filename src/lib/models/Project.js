@@ -9,7 +9,7 @@ const projectSchema = new mongoose.Schema({
     currency: { type: String, default: 'EUR' },
     estimatedHours: { type: Number, default: 0 },
     startDate: { type: Date },
-    deadline: { type: Date },
+    dueDate: { type: Date },
     status: { type: String, enum: ['active', 'paused', 'completed'], default: 'active' },
     totalLoggedHours: { type: Number, default: 0 },
 },

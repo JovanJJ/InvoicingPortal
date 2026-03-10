@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import CommitsList from './CommitsList';
-import { startTimer, pauseTimer, resumeTimer, stopTimer, getRunningTimer, commitMessage, fetchCommitMessages } from '@/lib/actions';
-import formatDuration from './formatDuration';
+import { startTimer, pauseTimer, resumeTimer, stopTimer, getRunningTimer, commitMessage, fetchCommitMessages, abortTimer } from '@/lib/actions';
+import OpenDescription from './project/OpenDescriptionHtml';
+import IsModalOpen from './project/IsModalOpen';
+import ProjectPageHtml from './project/ProjectPageHtml';
+import ProgressBar from './ProgressBar';
+import GenerateInvoiceButton from './PDF/PdfButton';
 
-export default function Stopwatch({ projectId, userId }) {
+export default function Stopwatch({ projectId, userId, project, client, userData }) {
   const [timerId, setTimerId] = useState(null);
   const [status, setStatus] = useState("noWatch");
   const [seconds, setSeconds] = useState(0);
@@ -19,9 +22,9 @@ export default function Stopwatch({ projectId, userId }) {
   const [openDescription, setOpenDescription] = useState(false);
   const [message, setMessage] = useState("");
   const [commitList, setCommitList] = useState([]);
-  const [updateList, setUpdateList] = useState(false);
-  
-  
+  const [user, setUser] = useState({});
+
+console.log(seconds);
   useEffect(() => {
     async function checkExistingTimer() {
       if (!projectId) return;
@@ -55,6 +58,7 @@ export default function Stopwatch({ projectId, userId }) {
       }
 
       setLoading(false)
+
     }
 
     checkExistingTimer()
@@ -63,7 +67,7 @@ export default function Stopwatch({ projectId, userId }) {
 
   useEffect(() => {
     const getCommitMessages = async () => {
-      const {list, success} = await fetchCommitMessages(projectId);
+      const { list, success } = await fetchCommitMessages(projectId);
       setCommitList(list);
     }
     getCommitMessages();
@@ -84,11 +88,14 @@ export default function Stopwatch({ projectId, userId }) {
     return () => clearInterval(intervalRef.current)
   }, [status, startedAt, accumulatedSeconds, serverOffset])
 
- 
-  const handleChange = (e) => {
-    setMessage(e.target.value);
+  const handleAbort = async () => {
+    const deleted = await abortTimer(timerId);
+    setTimerId(null);
+    setStartedAt(0);
+    setAccumulatedSeconds(0);
+    setSeconds(0);
+    setStatus("noWatch");
   }
-
 
   const handleStart = async () => {
     const entry = await startTimer(projectId, userId);
@@ -129,160 +136,20 @@ export default function Stopwatch({ projectId, userId }) {
   }
   if (loading) return <div>Loading timer...</div>
 
+
+ 
+
   return (
     <>
-    {openDescription &&
-    <div className="fixed inset-0 backdrop-blur-[2px] z-40 transition-opacity">
-          <div className="flex items-center justify-center h-full w-full z-50 border border-green-400">
-            <form className="bg-white p-6 rounded-lg shadow-lg z-50 border border-green-400 max-w-xl w-full">
-              <h2 className="text-lg font-semibold mb-4 z-50">Description</h2>
-              <textarea 
-              onChange={handleChange}
-              className='outline-none border border-gray-400 p-2 w-full rounded-xs min-h-[150px]'>
-
-              </textarea>
-              <div className="flex justify-end mt-4">
-                <button
-                onClick={
-               async () => {
-               await commitMessage(message, timerId);
-               await handleStop();
-               
-               setOpenDescription(false);
-               }
-                }
-                className="bg-green-500 text-white px-4 py-2 rounded mr-2"     
-                >
-                  Commit
-                </button>
-                <button
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    setIsModalOpen(false);
-                    setOpenDescription(false);
-                    if (wasRunning) {
-                      await handleResume();
-                    }
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-    }
-      {isModalOpen &&
-        <div className="fixed inset-0 backdrop-blur-[2px] z-40 transition-opacity">
-          <div className="flex items-center justify-center h-full w-full z-50 border border-green-400">
-            <div className="bg-white p-6 rounded-lg shadow-lg z-50 border border-green-400">
-              <h2 className="text-lg font-semibold mb-4 z-50">Stop Timer</h2>
-              <p className="z-50">Are you sure you want to stop the timer?</p>
-              <div className="flex justify-end mt-4">
-                <button
-                  className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-                  onClick={() => {setOpenDescription(true); setIsModalOpen(false)}}
-                >
-                  Stop
-                </button>
-                <button
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                  onClick={async () => {
-                    setIsModalOpen(false);
-                    if (wasRunning) {
-                      await handleResume();
-                    }
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {openDescription &&
+        <OpenDescription handleStop={handleStop} setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} setMessage={setMessage} message={message} timerId={timerId} wasRunning={wasRunning} />
       }
-      <div className="w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative w-48 h-48 mb-6">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="90"
-                  fill="#ECFDF5"
-                  stroke="#E0F2FE"
-                  strokeWidth="2"
-                />
-
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="90"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="3"
-                  strokeDasharray={`${2 * Math.PI * 90}`}
-                  strokeDashoffset={`${2 * Math.PI * 90 * 0.3}`}
-                />
-              </svg>
-
-
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">
-                    {formatDuration(seconds)}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">{status}</p>
-                </div>
-              </div>
-            </div>
-
-
-            <div className="flex gap-3">
-              {status === 'noWatch' && (
-                <button className='bg-green-500 text-white px-4 py-2 rounded' onClick={handleStart}>Start</button>
-              )}
-
-              {status === 'running' && (
-                <>
-                  <button className='bg-blue-500 text-white px-4 py-2 rounded' onClick={handlePause}>Pause</button>
-                  <button
-                    className='bg-red-500 text-white px-4 py-2 rounded'
-                    onClick={async () => {
-                      setWasRunning(true);
-                      await handlePause();
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-
-              {status === 'paused' && (
-                <>
-                  <button className='bg-green-500 text-white px-4 py-2 rounded' onClick={handleResume}>Resume</button>
-                  <button
-                    className='bg-red-500 text-white px-4 py-2 rounded'
-                    onClick={() => {
-                      setWasRunning(false);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <CommitsList commitList={commitList} />
-        </div>
-      </div>
+      {isModalOpen &&
+        <IsModalOpen setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} wasRunning={wasRunning} />
+      }
+      <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={commitList} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} />
+      <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} />
+      <GenerateInvoiceButton project={project} client={client} timeEntries={commitList} user={userData} />
     </>
   );
 }

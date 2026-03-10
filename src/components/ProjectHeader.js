@@ -11,9 +11,9 @@ export default function ProjectHeader({ project, client }) {
     ...project,
     clientName: client.clientName,
     startDate: getDateInputFormat(project.startDate),
+    dueDate: getDateInputFormat(project.dueDate)
     
   });
-  
 
 
   // Convert startDate to YYYY-MM-DD format for input field
@@ -63,8 +63,10 @@ export default function ProjectHeader({ project, client }) {
       paymentType: formData.paymentType,
       rate: formData.rate,
       currency: formData.currency,
+      dueDate: formData.dueDate,
       estimatedHours: formData.estimatedHours,
       status: formData.status,
+      rate: formData.rate,
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : formData.startDate
     };
     
@@ -75,6 +77,7 @@ export default function ProjectHeader({ project, client }) {
       ...formData,
       ...res.updatedProject,
       startDate: getDateInputFormat(res.updatedProject.startDate),
+      dueDate: getDateInputFormat(res.updatedProject.dueDate),
       clientName: clientName || formData.clientName
     });
     setIsEditing(false);
@@ -85,7 +88,7 @@ export default function ProjectHeader({ project, client }) {
     <div className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-8 py-4"> 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-
+        
              <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Project Name</label>
             {isEditing ? (
@@ -131,6 +134,18 @@ export default function ProjectHeader({ project, client }) {
               className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
             />
           </div>
+
+           <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
+            <input
+              type="date"
+              name="dueDate"
+              value={formData.dueDate}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
+            />
+          </div>
   
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Estimated Hours</label>
@@ -160,6 +175,26 @@ export default function ProjectHeader({ project, client }) {
               </div>
             )}
           </div>
+
+
+          <div className='max-w-[80px]'>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Rate</label>
+            {isEditing ? (
+              <input
+                type="text"
+                name="rate"
+                value={formData.rate || ""}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            ) : (
+              <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
+                {formData.rate}
+              </div>
+            )}
+          </div>
+
+
         </div>
 
         <div className="flex items-end justify-between gap-4">

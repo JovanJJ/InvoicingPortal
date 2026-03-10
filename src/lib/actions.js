@@ -4,11 +4,53 @@ import Project from "./models/Project";
 import User from "./models/User";
 import { connectDB } from "./connectdb";
 import Client from "./models/Client.js";
-import getSession from "./auth";
+import Invoice from "./models/Invoice";
+import { generateInvoiceNumber } from "@/components/helper/GenerateInvoiceNumber";
 import { revalidatePath } from "next/cache";
 import TimeEntry from "./models/TimeEntry";
+import { renderToBuffer } from '@react-pdf/renderer'
+import { InvoicePDF } from "@/components/PDF/InvoicePDF";
+import { v2 as cloudinary } from 'cloudinary';
+import getSession from '@/lib/auth';
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 
+
+
+function splitEntryAcrossDays(entry, timezone) {
+    const start = new Date(entry.timerStartedAt)
+    const stop = new Date(entry.timerStoppedAt)
+    const result = {}
+
+    const startDate = start.toLocaleDateString('en-CA', { timeZone: timezone })
+    const stopDate = stop.toLocaleDateString('en-CA', { timeZone: timezone })
+
+    if (startDate === stopDate) {
+        result[startDate] = entry.duration
+        return result
+    }
+
+    let current = new Date(start)
+
+    while (true) {
+        const currentDate = current.toLocaleDateString('en-CA', { timeZone: timezone })
+        const nextDay = new Date(current)
+        nextDay.setDate(nextDay.getDate() + 1)
+        const midnight = new Date(nextDay.toLocaleDateString('en-CA', { timeZone: timezone }))
+
+        if (currentDate === stopDate) {
+            const secondsThisDay = Math.floor((stop - current) / 1000)
+            result[currentDate] = (result[currentDate] || 0) + secondsThisDay
+            break
+        } else {
+            const secondsThisDay = Math.floor((midnight - current) / 1000)
+            result[currentDate] = (result[currentDate] || 0) + secondsThisDay
+            current = midnight
+        }
+    }
+
+    return result
+}
 
 
 
@@ -40,6 +82,11 @@ async function createProject(projectName, paymentType, clientId) {
     if (project) {
         return { success: true }
     }
+}
+
+export async function fetchUser(userId) {
+    const user = await User.findById(userId);
+    return user;
 }
 
 export async function handleCreateProject(formData) {
@@ -77,6 +124,7 @@ export async function fetchProjectById(id) {
         currency: data.currency,
         estimatedHours: data.estimatedHours,
         startDate: data.startDate,
+        dueDate: data.dueDate,
         status: data.status,
         totalLoggedHours: data.totalLoggedHours,
         createdAt: data.createdAt,
@@ -167,7 +215,7 @@ export async function pauseTimer(timerId) {
         {
             pausedAt: now,
             accumulatedSeconds: totalAccumulated,
-            timerStartedAt: null,
+            //timerStartedAt: null,
             status: 'paused'
         },
         { new: true }
@@ -216,9 +264,13 @@ export async function stopTimer(timerId) {
         },
         { new: true }
     ).lean();
-
     return completed.duration;
 }
+
+export async function abortTimer(timerId) {
+    const timer = await TimeEntry.findByIdAndDelete(timerId);
+}
+
 
 export async function getRunningTimer(projectId) {
     if (!projectId) return null;
@@ -247,30 +299,162 @@ export async function getRunningTimer(projectId) {
     }
 }
 
-export async function commitMessage(message, timerId){
+export async function commitMessage(message, timerId) {
     await connectDB();
-    console.log("Here is the message", message);
     const timer = await TimeEntry.findByIdAndUpdate(
         timerId,
         {
-            description: message,  
+            description: message,
         },
         { new: true }
     );
 }
 
-export async function fetchCommitMessages(projectId){
+export async function fetchCommitMessages(projectId) {
     await connectDB();
-    const projects = await TimeEntry.find({projectId});
-    
-    const filtered = projects.map((project) => {
-        return{
+    const projects = await TimeEntry.find({ projectId });
+
+    const filtered = projects.filter(p => p.status === "completed").map((project) => {
+        return {
             createdAt: project.createdAt.toString(),
             duration: project.duration,
-            description: project.description
+            description: project.description,
+            billable: project.billable,
         };
     });
 
-   return {list: filtered, success: true} ;
+    return { list: filtered, success: true };
 }
 
+
+export async function fetchProgressPercentage(userId) {
+    await connectDB();
+    const projectsList = await TimeEntry.find(userId);
+    const totalDuration = projectsList.reduce((acc, project) => acc + project.duration, 0);
+    const durationInHours = totalDuration / 3600;
+    return durationInHours;
+
+}
+
+
+export async function getDailyHoursForProject(projectId, timezone) {
+    await connectDB()
+
+    const entries = await TimeEntry.find({
+        projectId,
+        status: 'completed'
+    }).select('timerStartedAt timerStoppedAt duration')
+
+    if (entries.length === 0) return []
+
+    const dailyMap = {}
+
+    entries.forEach(entry => {
+
+        const split = splitEntryAcrossDays(entry, timezone)
+
+        Object.entries(split).forEach(([date, seconds]) => {
+            dailyMap[date] = (dailyMap[date] || 0) + seconds
+        })
+    })
+
+    const sortedDates = Object.keys(dailyMap).sort()
+    const start = new Date(sortedDates[0])
+    const end = new Date()
+    const result = []
+
+    const current = new Date(start)
+    while (current <= end) {
+        const dateStr = current.toLocaleDateString('en-CA', { timeZone: timezone })
+        const totalSeconds = dailyMap[dateStr] || 0
+
+        result.push({
+            date: new Date(dateStr).toLocaleDateString('en-GB', {
+                month: 'short',
+                day: 'numeric'
+            }),
+            seconds: totalSeconds
+        })
+
+        current.setDate(current.getDate() + 1)
+    }
+
+    return result
+}
+
+
+export async function generateInvoicePDF(invoiceData) {
+    const buffer = await renderToBuffer(<InvoicePDF invoice={invoiceData} />)
+    return buffer
+}
+
+
+export async function uploadProfileImage(formData) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+    })
+
+    const session = await getSession(authOptions);
+    if (!session) throw new Error('Unauthorized')
+
+    const file = formData.get('image')
+    if (!file) throw new Error('No file provided')
+
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+        throw new Error('Only JPG, PNG and WEBP allowed')
+    }
+
+
+    if (file.size > 2 * 1024 * 1024) {
+        throw new Error('Image must be under 2MB')
+    }
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+            {
+                folder: 'freelance-app/profiles',
+                public_id: `user-${session.user.id}`,
+
+            },
+            (error, result) => {
+                if (error) reject(error)
+                else resolve(result)
+            }
+        ).end(buffer)
+    })
+
+    await User.findByIdAndUpdate(session.user.id, {
+        logo: result.secure_url
+    })
+
+    return result.secure_url
+}
+
+export async function saveInvoice(project, client, timeEntries, user) {
+    await connectDB();
+    const invoiceNumber = await generateInvoiceNumber();
+
+    const invoice = await Invoice.create({
+        projectId: project.id,
+        clientId: client.id,
+        userId: user.id,
+        invoiceNumber: invoiceNumber,
+        issueDate: new Date(),
+        dueDate: project.dueDate,
+        totalAmount: project.rate,
+        currency: project.currency,
+        commitList: timeEntries,
+    });
+
+    // Populate references after creation
+    await invoice.populate(["userId", "clientId"]);
+
+    console.log(invoice);
+}
