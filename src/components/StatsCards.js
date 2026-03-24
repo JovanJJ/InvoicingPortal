@@ -1,12 +1,13 @@
-export default function StatsCards({activeProjects}) {
+export default function StatsCards({ activeProjects, earnings, projectsValue, totalLoggedHours, chargeMoney }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
+
       <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-gray-600 text-sm font-medium mb-2">This Month's Earnings</p>
-            <h2 className="text-4xl font-bold text-gray-900">$0.00</h2>
+            <p className="text-gray-600 text-sm font-medium mb-2">Received (based on active projects)</p>
+            <h2 className="text-4xl font-bold text-gray-900">{earnings} USD</h2>
+
           </div>
           <div className="bg-green-100 p-3 rounded-lg">
             <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -14,15 +15,15 @@ export default function StatsCards({activeProjects}) {
             </svg>
           </div>
         </div>
-        <p className="text-gray-500 text-xs">Based on completed projects</p>
+
       </div>
 
-      
+
       <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-gray-600 text-sm font-medium mb-2">Money to Charge</p>
-            <h2 className="text-4xl font-bold text-gray-900">$0.00</h2>
+            <h2 className="text-4xl font-bold text-gray-900">{chargeMoney} USD</h2>
           </div>
           <div className="bg-blue-100 p-3 rounded-lg">
             <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -34,7 +35,7 @@ export default function StatsCards({activeProjects}) {
         <p className="text-gray-500 text-xs">Pending invoices awaiting payment</p>
       </div>
 
-      
+
       <div className="bg-white border border-gray-200 rounded-lg p-8 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between mb-6">
           <div>
@@ -51,11 +52,11 @@ export default function StatsCards({activeProjects}) {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center py-2 border-t border-gray-100">
             <span className="text-gray-600">Total Cost</span>
-            <span className="font-semibold text-gray-900">$0.00</span>
+            <span className="font-semibold text-gray-900">${projectsValue.projectsValue}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-t border-gray-100">
             <span className="text-gray-600">Hours Spent</span>
-            <span className="font-semibold text-gray-900">0h</span>
+            <span className="font-semibold text-gray-900">{totalLoggedHours}h</span>
           </div>
         </div>
       </div>

@@ -24,7 +24,7 @@ export default function Stopwatch({ projectId, userId, project, client, userData
   const [commitList, setCommitList] = useState([]);
   const [user, setUser] = useState({});
 
-console.log(seconds);
+
   useEffect(() => {
     async function checkExistingTimer() {
       if (!projectId) return;
@@ -65,13 +65,14 @@ console.log(seconds);
   }, [projectId])
 
 
+  const getCommitMessages = async () => {
+    const { list, success } = await fetchCommitMessages(projectId);
+    if (success) setCommitList(list);
+  };
+
   useEffect(() => {
-    const getCommitMessages = async () => {
-      const { list, success } = await fetchCommitMessages(projectId);
-      setCommitList(list);
-    }
     getCommitMessages();
-  }, []);
+  }, [projectId]);
 
 
   useEffect(() => {
@@ -137,19 +138,19 @@ console.log(seconds);
   if (loading) return <div>Loading timer...</div>
 
 
- 
+
 
   return (
     <>
       {openDescription &&
-        <OpenDescription handleStop={handleStop} setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} setMessage={setMessage} message={message} timerId={timerId} wasRunning={wasRunning} />
+        <OpenDescription handleStop={handleStop} setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} setMessage={setMessage} message={message} timerId={timerId} wasRunning={wasRunning} getCommitMessages={getCommitMessages} />
       }
       {isModalOpen &&
         <IsModalOpen setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} wasRunning={wasRunning} />
       }
       <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={commitList} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} />
-      <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} />
-      <GenerateInvoiceButton project={project} client={client} timeEntries={commitList} user={userData} />
+      <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} projectId={projectId} />
+      <GenerateInvoiceButton project={project} client={client} timeEntries={commitList} user={userData} getCommitMessages={getCommitMessages} />
     </>
   );
 }

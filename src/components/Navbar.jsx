@@ -13,9 +13,10 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
     { href: '/projects', label: 'Projects' },
+    { href: '/invoices', label: 'Invoices'},
     { href: '/contact', label: 'Contact' },
+    { href: '/about', label: 'About' },
   ];
 
   return (
@@ -48,9 +49,9 @@ export default function Navbar() {
               <Bell size={24} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button className="p-2 text-gray-700 hover:text-blue-600 transition-colors">
+            <Link href="/settings" className="p-2 text-gray-700 hover:text-green-600 transition-colors">
               <Settings size={24} />
-            </button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -82,9 +83,9 @@ export default function Navbar() {
                 <Bell size={24} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <button className="p-2 text-gray-700 hover:text-blue-600 transition-colors">
+              <Link href="/settings" className="p-2 text-gray-700 hover:text-green-600 transition-colors" onClick={() => setIsOpen(false)}>
                 <Settings size={24} />
-              </button>
+              </Link>
             </div>
           </div>
         )}

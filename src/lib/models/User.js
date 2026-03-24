@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
   address: { type: String },
   country: { type: String },
   phone: { type: String },
-  taxId: { type: String }, // PIB in Serbia
+  taxIdType: { type: String },
+  taxIdNumber: { type: String },
 
   // Payment & billing preferences
   bankAccounts: [
@@ -38,7 +39,10 @@ const userSchema = new mongoose.Schema({
   // Stripe
   stripeAccountId: { type: String }, // their connected Stripe account
 
+  // User preferences
+  notifications: { type: Boolean, default: true },
+
 }, { timestamps: true });
 
-export default mongoose.models.Users || 
-mongoose.model("Users", userSchema);
+export default mongoose.models.Users ||
+  mongoose.model("Users", userSchema);

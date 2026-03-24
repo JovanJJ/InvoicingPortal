@@ -2,7 +2,7 @@
 
 import { commitMessage } from "@/lib/actions";
 
-export default function OpenDescription({handleStop, setOpenDescription, setIsModalOpen, handleResume, setMessage, message, timerId, wasRunning}){
+export default function OpenDescription({handleStop, setOpenDescription, setIsModalOpen, handleResume, setMessage, message, timerId, wasRunning, getCommitMessages}){
 
     const handleChange = (e) => {
     setMessage(e.target.value);
@@ -19,10 +19,13 @@ export default function OpenDescription({handleStop, setOpenDescription, setIsMo
               </textarea>
               <div className="flex justify-end mt-4">
                 <button
+                type="button"
                 onClick={
-               async () => {
+               async (e) => {
+               e.preventDefault();
                await commitMessage(message, timerId);
                await handleStop();
+               await getCommitMessages();
                
                setOpenDescription(false);
                }

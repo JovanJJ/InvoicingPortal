@@ -2,22 +2,25 @@
 
 import { useState } from 'react';
 import { updateProject, updateClient } from '@/lib/actions';
+import Image from 'next/image';
 
-export default function ProjectHeader({ project, client }) {
-  const [ selectedAccount, setSelectedAccount ] = useState('stripe');
-  const [ isEditing, setIsEditing ] = useState(false);
-  const [ success, message ] = useState("");
-  const [ formData, setFormData ] = useState({
+export default function ProjectHeader({ project, client, userImage, bankAccounts, currencies }) {
+  const [selectedAccount, setSelectedAccount] = useState(project.bankAccountId);
+  const [isEditing, setIsEditing] = useState(false);
+  const [success, message] = useState("");
+  const [formData, setFormData] = useState({
     ...project,
     clientName: client.clientName,
     startDate: getDateInputFormat(project.startDate),
-    dueDate: getDateInputFormat(project.dueDate)
-    
+    dueDate: getDateInputFormat(project.dueDate),
+    taxRate: project.taxRate || 0,
+    clientAddress: client.address || "",
+
   });
+  //console.log(selectedAccount);
 
-
-  // Convert startDate to YYYY-MM-DD format for input field
-  function getDateInputFormat  (isoDate) {
+  function getDateInputFormat(isoDate) {
+    if (!isoDate) return "";
     const date = new Date(isoDate);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -25,21 +28,10 @@ export default function ProjectHeader({ project, client }) {
     return `${year}-${month}-${day}`;
   };
 
-  
 
-  
-  const bankAccounts = [
-    {
-      id: 'stripe',
-      name: 'Stripe Express',
-      accountNum: '****1234',
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal Business',
-      accountNum: '****5678',
-    },
-  ];
+
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -52,44 +44,58 @@ export default function ProjectHeader({ project, client }) {
   const updateInput = async (e) => {
     e.preventDefault();
     let clientName;
-    if(formData.clientName){
-        clientName = await updateClient(formData.clientId.toString(), {clientName: formData.clientName});   
+    if (formData.clientName) {
+      clientName = await updateClient(formData.clientId.toString(), { clientName: formData.clientName });
     }
-    
-    
-    
+
+
     const dataToUpdate = {
       name: formData.name,
       paymentType: formData.paymentType,
       rate: formData.rate,
       currency: formData.currency,
-      dueDate: formData.dueDate,
       estimatedHours: formData.estimatedHours,
       status: formData.status,
-      rate: formData.rate,
-      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : formData.startDate
+      taxRate: Number(formData.taxRate),
+      bankAccountId: selectedAccount,
+      clientAddress: formData.clientAddress,
     };
-    
-    const res = await updateProject(formData.projectId, dataToUpdate);
-    
-      
+    if (formData.startDate) {
+      dataToUpdate.startDate = new Date(formData.startDate).toISOString();
+    } else {
+      dataToUpdate.startDate = null;
+    }
+    if (formData.dueDate) {
+      dataToUpdate.dueDate = new Date(formData.dueDate).toISOString();
+    } else {
+      dataToUpdate.dueDate = null;
+    }
+
+    const res = await updateProject(formData.projectId, dataToUpdate, formData.clientId.toString());
+
+
+
     setFormData({
       ...formData,
       ...res.updatedProject,
-      startDate: getDateInputFormat(res.updatedProject.startDate),
-      dueDate: getDateInputFormat(res.updatedProject.dueDate),
+      startDate: getDateInputFormat(res.updatedProject?.startDate),
+      dueDate: getDateInputFormat(res.updatedProject?.dueDate),
       clientName: clientName || formData.clientName
     });
     setIsEditing(false);
-    
-  } 
- 
+
+  }
+
   return (
     <div className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-8 py-4"> 
+      <div className="max-w-7xl mx-auto px-8 py-4">
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        
-             <div>
+          <div className='aspect-square bg-red-600 w-32 relative'>
+            <Image src={userImage} alt='update image in settings' width={128} height={128} className='w-full object-cover'></Image>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Project Name</label>
             {isEditing ? (
               <input
@@ -105,10 +111,10 @@ export default function ProjectHeader({ project, client }) {
               </div>
             )}
           </div>
-         
+
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Project Belongs To</label>
-             {isEditing ? (
+            {isEditing ? (
               <input
                 type="text"
                 name="clientName"
@@ -135,7 +141,7 @@ export default function ProjectHeader({ project, client }) {
             />
           </div>
 
-           <div>
+          <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
             <input
               type="date"
@@ -146,7 +152,7 @@ export default function ProjectHeader({ project, client }) {
               className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
             />
           </div>
-  
+
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Estimated Hours</label>
             <input
@@ -155,20 +161,25 @@ export default function ProjectHeader({ project, client }) {
               type="number"
               name="estimatedHours"
               disabled={!isEditing}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
+              className="w-full max-w-[100px] px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
             />
           </div>
-          
-          <div className='max-w-[80px]'>
+
+          <div className='max-w-[100px]'>
             <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
             {isEditing ? (
-              <input
-                type="text"
+              <select
                 name="currency"
                 value={formData.currency}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              />
+              >
+                {currencies.map((currency) => (
+                  <option key={currency._id} value={currency.name}>
+                    {currency.name}
+                  </option>
+                ))}
+              </select>
             ) : (
               <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
                 {formData.currency}
@@ -179,6 +190,16 @@ export default function ProjectHeader({ project, client }) {
 
           <div className='max-w-[80px]'>
             <label className="block text-xs font-medium text-gray-600 mb-1">Rate</label>
+            <div className='flex gap-2'>
+              <div className='flex items-center justify-center gap-2'>
+                <span className="block text-xs font-medium text-gray-600 mb-1">hourly</span>
+                <input disabled={!isEditing} type="radio" name="paymentType" value="hourly" checked={formData.paymentType === 'hourly'} onChange={handleInputChange} />
+              </div>
+              <div className='flex items-center justify-center gap-2'>
+                <span className="block text-xs font-medium text-gray-600 mb-1">fixed</span>
+                <input disabled={!isEditing} type="radio" name="paymentType" value="fixed" checked={formData.paymentType === 'fixed'} onChange={handleInputChange} />
+              </div>
+            </div>
             {isEditing ? (
               <input
                 type="text"
@@ -188,52 +209,89 @@ export default function ProjectHeader({ project, client }) {
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               />
             ) : (
-              <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
+              <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold flex gap-5">
                 {formData.rate}
+
               </div>
             )}
           </div>
 
-
-        </div>
-
-        <div className="flex items-end justify-between gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bank Account
-            </label>
-            <select
-              value={selectedAccount}
-              onChange={(e) => setSelectedAccount(e.target.value)}
-              className="w-full md:w-80 px-4 py-3 border border-gray-200 rounded-lg text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent cursor-pointer"
+            <label className="block text-xs font-medium text-gray-600 mb-1">Tax Rate in percentage (%)</label>
+            <input
+              type="text"
+              name="taxRate"
+              value={formData.taxRate}
+              onChange={handleInputChange}
               disabled={!isEditing}
-            >
-              {bankAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} • {account.accountNum}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Selected account: <span className="font-semibold text-gray-700">{bankAccounts.find(a => a.id === selectedAccount)?.name}</span>
-            </p>
+              className="w-full max-w-[100px] px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default"
+            />
           </div>
 
-            {!isEditing &&
-          <button
-            onClick={() => setIsEditing(true)}
-            className={`px-6 py-3 font-semibold rounded-lg transition-colors bg-gray-400 hover:bg-green-400 text-white`}
-          >
-            Change
-          </button>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select disabled={!isEditing} onChange={handleInputChange} value={formData.status} name='status' className='w-full max-w-[120px] px-4 py-3 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent'>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div >
+
+            <label className="block text-xs font-medium text-gray-600 mb-1">Client Address</label>
+            <input
+              type="text"
+              name="clientAddress"
+              value={formData.clientAddress}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              className='px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-900 disabled:cursor-default'
+            />
+          </div>
+
+          <div className="flex items-center  justify-between gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 ">
+                Bank Account
+              </label>
+              <select
+                value={selectedAccount}
+                onChange={(e) => setSelectedAccount(e.target.value)}
+                className="w-full md:w-80 px-4 py-3 border border-gray-200 rounded-lg text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent cursor-pointer"
+                disabled={!isEditing}
+              >
+                {bankAccounts.map((account) => (
+                  <option key={account._id} value={account._id}>
+                    {account.bankName} • {account.iban}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Selected account: <span className="font-semibold text-gray-700">{bankAccounts.find(a => a._id === selectedAccount)?.bankName}</span>
+              </p>
+            </div>
+
+
+
+          </div>
+
+          {!isEditing &&
+            <button
+              onClick={() => setIsEditing(true)}
+              className={`max-w-[100px] px-6 py-3 font-semibold rounded-lg transition-colors bg-gray-400 hover:bg-green-400 text-white`}
+            >
+              Change
+            </button>
           }
-          {isEditing && 
-          <button className={`px-6 py-3 font-semibold rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white`}
-          onClick={updateInput}
-          >Save</button>
+          {isEditing &&
+            <button className={`max-w-[100px] px-6 py-3 font-semibold rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white`}
+              onClick={updateInput}
+            >Save</button>
           }
-          
+
         </div>
+
+
       </div>
     </div>
   );

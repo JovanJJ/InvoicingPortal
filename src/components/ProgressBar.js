@@ -4,21 +4,20 @@ import { useSession } from "next-auth/react";
 import { fetchProgressPercentage } from "@/lib/actions";
 import { useEffect, useState } from "react";
 
-export default function ProgressBar({ estimatedHours, seconds }) {
+export default function ProgressBar({ estimatedHours, seconds, projectId }) {
 
   const [durationSeconds, setDurationSeconds] = useState(0);
   const totalSeconds = durationSeconds + seconds;
   const percentage = (totalSeconds / 3600) / estimatedHours * 100;
-  
+
   const { data: session, status } = useSession();
 
   const userId = session?.user?.id;
-
   useEffect(() => {
     if (status === "authenticated" && session.user.id) {
       const getPercantage = async () => {
-        const durationInHours = await fetchProgressPercentage({ userId });
-        setDurationSeconds(durationInHours * 3600); // Convert hours to seconds
+        const durationInHours = await fetchProgressPercentage(projectId);
+        setDurationSeconds(durationInHours * 3600);
       }
       getPercantage();
     }

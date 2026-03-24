@@ -10,7 +10,8 @@ const timeEntrySchema = new mongoose.Schema({
     accumulatedSeconds: { type: Number, default: 0 },
     duration: { type: Number, default: 0 },
     billable: { type: Boolean, default: true },
-    status: { type: String, enum: ['running', 'paused', 'completed'], default: 'running' }
+    status: { type: String, enum: ['running', 'paused', 'completed'], default: 'running' },
+    invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' },
 },
     { timestamps: true });
 

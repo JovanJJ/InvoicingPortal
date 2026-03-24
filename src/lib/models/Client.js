@@ -1,12 +1,13 @@
 import mongoose from "mongoose";
 
 const clientSchema = new mongoose.Schema({
-    clientName: {type: String}, 
-    clientEmail: {type: String},
-    clientCountry: {type: String},
+    clientName: { type: String },
+    clientEmail: { type: String },
+    clientCountry: { type: String },
+    address: { type: String, default: "" },
 },
-{timestamps: true}
+    { timestamps: true }
 );
 
 export default mongoose.models.Client ||
-mongoose.model("Client", clientSchema);
+    mongoose.model("Client", clientSchema);
