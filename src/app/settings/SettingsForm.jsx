@@ -19,7 +19,9 @@ export default function SettingsForm({ user }) {
     const [bankData, setBankData] = useState({
         bankName: "",
         iban: "",
-        currency: "USD"
+        currency: "USD",
+        accountOwnerFirstName: "",
+        accountOwnerLastName: ""
     });
     const [enabled, setEnabled] = useState(user?.notifications || false);
     const [loading, setLoading] = useState(false);
@@ -34,7 +36,6 @@ export default function SettingsForm({ user }) {
         taxIdNumber: user?.taxIdNumber || "",
     });
 
-    console.log(settingsData);
 
     const handlePickDefault = async (userId, bankId) => {
         setLoading(true);
@@ -80,7 +81,7 @@ export default function SettingsForm({ user }) {
         const res = await addBankAccount(user._id, bankData);
         if (res.success) {
             setMessage({ type: 'success', text: res.message });
-            setBankData({ bankName: "", iban: "", currency: "USD" });
+            setBankData({ bankName: "", iban: "", currency: "USD", accountOwnerFirstName: "", accountOwnerLastName: "" });
             router.refresh();
         } else {
             setMessage({ type: 'error', text: res.message });
@@ -129,9 +130,11 @@ export default function SettingsForm({ user }) {
                             <div className="font-mono text-gray-600 break-all">{acc.iban}</div>
                         </div>
 
-                        <div className="md:border-r border-gray-200 px-3 text-center">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase md:hidden block mb-1">Currency</span>
-                            <div className="font-semibold text-gray-700">{acc.currency || "---"}</div>
+                        <div className="md:border-r border-gray-200 px-3 overflow-hidden">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase md:hidden block mb-1">Owner</span>
+                            <div className="font-medium text-gray-800 truncate">
+                                {acc.accountOwnerFirstName} {acc.accountOwnerLastName}
+                            </div>
                         </div>
 
                         <div className="md:border-r border-gray-200 px-3 text-center">
@@ -179,35 +182,62 @@ export default function SettingsForm({ user }) {
                 <div className="space-y-4">
                     <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b pb-2">Add bank</h2>
                     <form onSubmit={handleAddBank} className="grid grid-cols-1 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
-                            <input
-                                name="bankName"
-                                value={bankData.bankName}
-                                onChange={handleBankData}
-                                type="text"
-                                placeholder="e.g. Raiffeisen Bank"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Owner First Name</label>
+                                <input
+                                    name="accountOwnerFirstName"
+                                    value={bankData.accountOwnerFirstName}
+                                    onChange={handleBankData}
+                                    type="text"
+                                    placeholder="e.g. John"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Owner Last Name</label>
+                                <input
+                                    name="accountOwnerLastName"
+                                    value={bankData.accountOwnerLastName}
+                                    onChange={handleBankData}
+                                    type="text"
+                                    placeholder="e.g. Doe"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
-                            <input
-                                onChange={handleBankData}
-                                value={bankData.iban}
-                                name='iban'
-                                id="iban"
-                                type="text"
-                                placeholder="RS35..."
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                                <input
+                                    name="bankName"
+                                    value={bankData.bankName}
+                                    onChange={handleBankData}
+                                    type="text"
+                                    placeholder="e.g. Raiffeisen Bank"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                                <input
+                                    onChange={handleBankData}
+                                    value={bankData.iban}
+                                    name='iban'
+                                    id="iban"
+                                    type="text"
+                                    placeholder="RS35..."
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                />
+                            </div>
                         </div>
                         <div>
                             <div className='block text-sm font-medium text-gray-700 mb-1'>Currency</div>
                             <select
                                 onChange={handleBankData}
                                 name='currency'
-                                className='border border-gray-300 p-2 rounded'
+                                value={bankData.currency}
+                                className='border border-gray-300 p-2 rounded w-full'
                             >
                                 <option value="">Select currency</option>
                                 <option value="USD">USD</option>

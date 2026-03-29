@@ -1,13 +1,14 @@
 
 import formatDuration from "./formatDuration";
 
-export default function CommitsList({commitList}) {
-let orderedList = [...commitList].reverse();
-  
-  
+export default function CommitsList({ commitList }) {
+  let orderedList = [...commitList].reverse();
+
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 h-full">
-      <h3 className="text-lg font-bold text-gray-900 mb-6">Work Log</h3>
+      <h3 className="text-lg font-bold text-gray-900 ">Work Log</h3>
+      <span className="block mb-6 text-[14px] text-gray-500">You can change logs when you edit invoice preview</span>
 
       <div className="space-y-6  max-h-96 overflow-y-auto">
         {commitList.length === 0 ? (

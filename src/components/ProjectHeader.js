@@ -17,7 +17,6 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
     clientAddress: client.address || "",
 
   });
-  //console.log(selectedAccount);
 
   function getDateInputFormat(isoDate) {
     if (!isoDate) return "";
@@ -91,10 +90,6 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
       <div className="max-w-7xl mx-auto px-8 py-4">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <div className='aspect-square bg-red-600 w-32 relative'>
-            <Image src={userImage} alt='update image in settings' width={128} height={128} className='w-full object-cover'></Image>
-          </div>
-
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Project Name</label>
             {isEditing ? (
@@ -275,6 +270,10 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
 
           </div>
 
+
+        </div>
+
+        <div>
           {!isEditing &&
             <button
               onClick={() => setIsEditing(true)}
@@ -288,10 +287,7 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
               onClick={updateInput}
             >Save</button>
           }
-
         </div>
-
-
       </div>
     </div>
   );

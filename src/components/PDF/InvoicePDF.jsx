@@ -224,8 +224,8 @@ export function InvoicePDF({ invoice }) {
             <Text style={styles.partyName}>{freelancer.name}</Text>
             <Text style={styles.partyDetail}>{freelancer.email}</Text>
             <Text style={styles.partyDetail}>{freelancer.address}</Text>
-            {freelancer.taxId && (
-              <Text style={styles.partyDetail}>PIB: {freelancer.taxId}</Text>
+            {freelancer.taxIdType && (
+              <Text style={styles.partyDetail}>{freelancer.taxIdType}: {freelancer.taxIdNumber}</Text>
             )}
           </View>
           <View style={styles.partyBlock}>
@@ -234,6 +234,7 @@ export function InvoicePDF({ invoice }) {
             <Text style={styles.partyDetail}>{client.email}</Text>
             <Text style={styles.partyDetail}>{client.company}</Text>
             <Text style={styles.partyDetail}>{client.address}</Text>
+            <Text style={styles.partyDetail}>{client.taxIdType}: {client.taxIdNumber}</Text>
           </View>
         </View>
 
@@ -317,6 +318,11 @@ export function InvoicePDF({ invoice }) {
           )}
           {bankAccount?.bankName && (
             <Text style={styles.paymentDetail}>Bank: {bankAccount.bankName}</Text>
+          )}
+          {(bankAccount?.accountOwnerFirstName || bankAccount?.accountOwnerLastName) && (
+            <Text style={styles.paymentDetail}>
+              Account Owner: {bankAccount.accountOwnerFirstName} {bankAccount.accountOwnerLastName}
+            </Text>
           )}
           <Text style={styles.paymentDetail}>
             Reference: {invoiceNumber}

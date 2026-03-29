@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { startTimer, pauseTimer, resumeTimer, stopTimer, getRunningTimer, commitMessage, fetchCommitMessages, abortTimer } from '@/lib/actions';
+import { startTimer, pauseTimer, resumeTimer, stopTimer, getRunningTimer, fetchCommitMessages, abortTimer } from '@/lib/actions';
 import OpenDescription from './project/OpenDescriptionHtml';
 import IsModalOpen from './project/IsModalOpen';
 import ProjectPageHtml from './project/ProjectPageHtml';
 import ProgressBar from './ProgressBar';
 import GenerateInvoiceButton from './PDF/PdfButton';
+import InvoicePreview from './InvoicePreview';
+import InvoicePreviewButton from './InvoicePreviewButton';
 
-export default function Stopwatch({ projectId, userId, project, client, userData }) {
+
+export default function Stopwatch({ projectId, userId, project, client, userData, bankIban }) {
   const [timerId, setTimerId] = useState(null);
   const [status, setStatus] = useState("noWatch");
   const [seconds, setSeconds] = useState(0);
@@ -22,7 +25,7 @@ export default function Stopwatch({ projectId, userId, project, client, userData
   const [openDescription, setOpenDescription] = useState(false);
   const [message, setMessage] = useState("");
   const [commitList, setCommitList] = useState([]);
-  const [user, setUser] = useState({});
+  const [invoicePreview, setInvoicePreview] = useState(false);
 
 
   useEffect(() => {
@@ -135,9 +138,12 @@ export default function Stopwatch({ projectId, userId, project, client, userData
     setStatus('noWatch')
     setIsModalOpen(false)
   }
+
+  const handleInvoicePreview = (condition) => {
+    setInvoicePreview(condition);
+  }
+
   if (loading) return <div>Loading timer...</div>
-
-
 
 
   return (
@@ -150,7 +156,8 @@ export default function Stopwatch({ projectId, userId, project, client, userData
       }
       <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={commitList} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} />
       <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} projectId={projectId} />
-      <GenerateInvoiceButton project={project} client={client} timeEntries={commitList} user={userData} getCommitMessages={getCommitMessages} />
+      <InvoicePreviewButton handleInvoicePreview={handleInvoicePreview} />
+      {invoicePreview && <InvoicePreview handleInvoicePreview={handleInvoicePreview} project={project} client={client} timeEntries={commitList} user={userData} getCommitMessages={getCommitMessages} bankIban={bankIban} />}
     </>
   );
 }

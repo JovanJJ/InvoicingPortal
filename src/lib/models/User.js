@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema({
   bankAccounts: [
     {
       label: { type: String }, // "EUR Account" or "RSD Account"
+      accountOwnerFirstName: { type: String },
+      accountOwnerLastName: { type: String },
       bankName: { type: String },
       iban: { type: String },
       currency: { type: String },

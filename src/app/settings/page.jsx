@@ -15,7 +15,7 @@ export default async function SettingPage() {
             </div>
         );
     }
-    console.log(userData.address);
+
     const user = {
         _id: userData._id.toString(),
         name: userData.name || "",

@@ -15,6 +15,7 @@ import getSession from '@/lib/auth';
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import calculateInBaseCurrency from "@/components/helper/calculateBaseCurrency";
 import Currency from "./models/Currency";
+import nodemailer from "nodemailer";
 
 /*
 async function fillCurrencies(currency) {
@@ -75,12 +76,13 @@ function splitEntryAcrossDays(entry, timezone) {
 
 
 
-async function createClient(clientContactName, clientEmail, clientCountry) {
+async function createClient(clientContactName, clientEmail, clientCountry, userId) {
     await connectDB();
     const client = await Client.create({
         clientName: clientContactName,
         clientEmail: clientEmail,
         clientCountry: clientCountry,
+        userId: userId,
     })
 
     const clientId = client._id.toString();
@@ -135,9 +137,11 @@ export async function fetchUser(userId) {
 }
 
 export async function handleCreateProject(formData) {
+    const session = await getSession();
+    const userId = session.user?.id;
     const { projectName, clientContactName, clientEmail, clientCountry, paymentType } = await formData;
 
-    const { clientId } = await createClient(clientContactName, clientEmail, clientCountry);
+    const { clientId } = await createClient(clientContactName, clientEmail, clientCountry, userId);
     const project = await createProject(projectName, paymentType, clientId);
 
 
@@ -208,7 +212,7 @@ export async function fetchProjectById(id) {
 
 export async function fetchClient(id) {
     await connectDB();
-    const data = await Client.findById(id).select("clientName clientEmail clientCounty address createdAt updatedAt").lean();
+    const data = await Client.findById(id).select("clientName clientEmail clientCountry address createdAt updatedAt taxIdType taxIdNumber").lean();
 
     if (!data) return null;
 
@@ -216,8 +220,10 @@ export async function fetchClient(id) {
         _id: data._id.toString(),
         clientName: data.clientName,
         clientEmail: data.clientEmail,
-        clientCounty: data.clientCounty,
+        clientCountry: data.clientCountry,
         address: data.address,
+        taxIdType: data.taxIdType,
+        taxIdNumber: data.taxIdNumber,
         createdAt: data.createdAt?.toISOString() || null,
         updatedAt: data.updatedAt?.toISOString() || null,
     }
@@ -225,16 +231,79 @@ export async function fetchClient(id) {
     return client;
 }
 
-export async function updateClient(id, update) {
+export async function fetchProjectsAndClients(userId) {
+    await connectDB();
+    const mongoose = (await import("mongoose")).default;
+    const data = await Project.aggregate([
+
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+
+        {
+            $group: {
+                _id: "$clientId",
+                projects: {
+                    $push: {
+                        _id: "$_id",
+                        name: "$name"
+                    }
+                }
+            }
+        },
+
+        {
+            $lookup: {
+                from: "clients",
+
+                localField: "_id",
+                foreignField: "_id",
+                as: "clientDetails"
+            }
+        },
+
+        { $unwind: "$clientDetails" },
+
+        {
+            $project: {
+                _id: { $toString: "$clientDetails._id" },
+                clientName: "$clientDetails.clientName",
+                clientEmail: "$clientDetails.clientEmail",
+                clientCountry: "$clientDetails.clientCountry",
+                address: "$clientDetails.address",
+                taxIdType: "$clientDetails.taxIdType",
+                taxIdNumber: "$clientDetails.taxIdNumber",
+                createdAt: "$clientDetails.createdAt",
+                projects: {
+                    $map: {
+                        input: "$projects",
+                        as: "proj",
+                        in: {
+                            _id: { $toString: "$$proj._id" },
+                            name: "$$proj.name"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $sort: { createdAt: -1 }
+        }
+    ]);
+
+    return JSON.parse(JSON.stringify(data));
+}
+
+export async function updateClient(id, data) {
     try {
         await connectDB();
+        const { _id, ...updateData } = data;
         const client = await Client.findByIdAndUpdate(
             id,
-            update,
-            { new: true }
-        ).select("clientName address").lean();
+            { $set: updateData },
+            { returnDocument: 'after', runValidators: true }
+        ).select("clientName address taxIdType taxIdNumber").lean();
+        revalidatePath("/clients");
         revalidatePath("/projects");
-        return client;
+        return { success: true };
 
     } catch (error) {
         return { success: false, message: error.message }
@@ -243,16 +312,13 @@ export async function updateClient(id, update) {
 
 export async function updateProject(projectId, updates, clientId) {
     try {
-        console.log(updates.clientAddress);
-        console.log(clientId);
         await connectDB();
 
         const updatedProject = await Project.findByIdAndUpdate(
             projectId,
             updates,
-            { new: true }
+            { returnDocument: 'after' }
         ).lean();
-        console.log(updates);
 
         await calculateProjectValue(projectId);
 
@@ -314,7 +380,7 @@ export async function pauseTimer(timerId) {
             //timerStartedAt: null,
             status: 'paused'
         },
-        { new: true }
+        { returnDocument: 'after' }
     ).lean();
     return time.accumulatedSeconds;
 }
@@ -328,7 +394,7 @@ export async function resumeTimer(timerId) {
             pausedAt: null,
             status: 'running'
         },
-        { new: true }
+        { returnDocument: 'after' }
     ).select("accumulatedSeconds timerStartedAt").lean()
     return {
         accumulatedSeconds: time.accumulatedSeconds,
@@ -358,7 +424,7 @@ export async function stopTimer(timerId) {
             duration: totalDuration,
             status: 'completed'
         },
-        { new: true }
+        { returnDocument: 'after' }
     ).lean();
 
     await calculateLogedHours(timer.projectId.toString());
@@ -560,7 +626,6 @@ export async function uploadProfileImage(formData) {
 }
 
 export async function updateUserSettings(userId, data) {
-    console.log(data);
     try {
         await connectDB();
         const { defaultCurrency, notification, address, taxIdType, taxIdNumber } = data;
@@ -582,9 +647,9 @@ export async function updateUserSettings(userId, data) {
 export async function addBankAccount(userId, bankData) {
     try {
         await connectDB();
-        const { bankName, iban, currency } = bankData;
+        const { bankName, iban, currency, accountOwnerFirstName, accountOwnerLastName } = bankData;
         if (iban.length < 15 || iban.length > 34) return { success: false, message: "IBAN must be between 15 and 34 characters long" };
-        if (!bankName || !iban || !currency) return { success: false, message: "All fields are required" };
+        if (!bankName || !iban || !currency || !accountOwnerFirstName || !accountOwnerLastName) return { success: false, message: "All fields are required" };
         const user = await User.findById(userId);
         if (!user) return { success: false, message: "User not found" };
 
@@ -592,6 +657,8 @@ export async function addBankAccount(userId, bankData) {
             bankName,
             iban,
             currency,
+            accountOwnerFirstName,
+            accountOwnerLastName,
             isDefault: user.bankAccounts.length === 0
         });
 
@@ -603,7 +670,7 @@ export async function addBankAccount(userId, bankData) {
     }
 }
 
-export async function saveInvoice(project, client, timeEntries, user) {
+export async function saveInvoice(project, client, timeEntries, user, dueDate, notes) {
     await connectDB();
     const invoiceNumber = await generateInvoiceNumber();
 
@@ -613,15 +680,18 @@ export async function saveInvoice(project, client, timeEntries, user) {
         userId: project.userId,
         invoiceNumber: invoiceNumber,
         issueDate: new Date(),
-        dueDate: project.dueDate,
+        dueDate: dueDate,
         totalAmount: project.rate,
         currency: project.currency,
         commitList: timeEntries,
+        notes: notes,
     });
 
     await invoice.populate(["userId", "clientId"]);
+    revalidatePath("/invoices");
+    revalidatePath("/projects");
 
-    return { invoiceNumber: invoice.invoiceNumber, invoiceId: invoice._id.toString() };
+    return { invoiceNumber: invoice.invoiceNumber, invoiceId: invoice._id.toString(), message: "Successfully saved Invoice, check on invoice page" };
 }
 
 
@@ -744,7 +814,7 @@ export async function invoiceNotes(invoiceId, fields) {
         }
     }
 
-    const response = await Invoice.findByIdAndUpdate(invoiceId, updates, { new: true }).select("payments");
+    const response = await Invoice.findByIdAndUpdate(invoiceId, updates, { returnDocument: 'after' }).select("payments");
 
     if (response && response.payments) {
         const totalPaid = response.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
@@ -769,7 +839,7 @@ export async function deletePaymentUpdate(invoiceId, paymentsId) {
                 _id: paymentsId
             }
         }
-    }, { new: true }).select("payments");
+    }, { returnDocument: 'after' }).select("payments");
 
     if (response && response.payments) {
         const totalPaid = response.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
@@ -792,7 +862,7 @@ export async function updateInvoiceStatus(invoiceId, update) {
         totalPaid: totalEarnings,
     }
     await connectDB();
-    const res = await Invoice.findByIdAndUpdate(invoiceId, updates, { new: true })
+    const res = await Invoice.findByIdAndUpdate(invoiceId, updates, { returnDocument: 'after' })
     if (res) {
         revalidatePath("/invoices")
         return { success: true, message: "Status Changed" }
@@ -993,7 +1063,328 @@ export async function fetchProjectBankAccount(projectId, userId) {
     const bankAccountId = project.bankAccountId;
     const user = await User.findById(userId).select("bankAccounts").lean();
     const bankAccount = user.bankAccounts.find(bank => bank._id.toString() === bankAccountId);
-    console.log(bankAccount);
     return bankAccount;
 }
 
+
+export async function fetchBankIban(userId, projectBankId) {
+    const user = await User.findById(userId).select("bankAccounts").lean();
+    let bankAccount = null;
+    if (projectBankId) {
+        bankAccount = user.bankAccounts.find(b => b._id.toString() === projectBankId);
+    } else {
+        bankAccount = user.bankAccounts.find(b => b.isDefault);
+    }
+
+    return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
+}
+
+export async function updateTimeEntry(entryId, description, durationMinutes) {
+    try {
+        await connectDB();
+        const parsedDuration = Number(durationMinutes);
+        const updateDoc = { description };
+
+        // Only update duration if it's a valid number
+        if (!isNaN(parsedDuration)) {
+            updateDoc.duration = Math.round(parsedDuration * 60);
+        }
+
+        const entry = await TimeEntry.findByIdAndUpdate(entryId, updateDoc, { returnDocument: 'after' });
+
+        if (entry && entry.projectId) {
+            await calculateLogedHours(entry.projectId.toString());
+        }
+
+        revalidatePath("/projects");
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating time entry:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function updateInvoiceDetails(invoiceId, updates) {
+    try {
+        await connectDB();
+
+        let projectId = updates.projectId;
+        if (!projectId) {
+            const invoice = await Invoice.findById(invoiceId).select("projectId");
+            if (invoice) projectId = invoice.projectId;
+        }
+
+        if (updates.commitList && updates.commitList.length > 0) {
+            for (const entry of updates.commitList) {
+                const parsedDuration = Number(entry.durationMinutes);
+
+                if (entry.durationMinutes !== undefined && !isNaN(parsedDuration)) {
+                    entry.duration = Math.round(parsedDuration * 60);
+                }
+
+                if (entry._id) {
+                    const updateDoc = {};
+                    if (entry.description !== undefined) updateDoc.description = entry.description;
+                    if (entry.duration !== undefined) updateDoc.duration = entry.duration;
+
+                    await TimeEntry.findByIdAndUpdate(entry._id, updateDoc, { returnDocument: 'after' });
+                }
+            }
+
+            if (projectId) {
+                await calculateLogedHours(projectId.toString());
+            }
+        }
+
+        const invoiceUpdate = {};
+        if (updates.issueDate) invoiceUpdate.issueDate = new Date(updates.issueDate);
+        if (updates.dueDate) invoiceUpdate.dueDate = new Date(updates.dueDate);
+        if (updates.createdAt) invoiceUpdate.createdAt = new Date(updates.createdAt);
+        if (updates.currency) invoiceUpdate.currency = updates.currency;
+        if (updates.status) invoiceUpdate.status = updates.status;
+        if (updates.notes !== undefined) invoiceUpdate.notes = updates.notes;
+        if (updates.commitList) {
+
+            invoiceUpdate.commitList = updates.commitList.map(item => {
+                const { durationMinutes, ...rest } = item;
+                return rest;
+            });
+        }
+
+        await Invoice.findByIdAndUpdate(invoiceId, invoiceUpdate, { returnDocument: 'after' });
+
+        revalidatePath("/invoices");
+        return { success: true, message: "Invoice updated successfully." };
+
+    } catch (error) {
+        console.error('Error updating invoice details:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function markSentInvoice(invoiceId) {
+    await connectDB();
+    const invoice = await Invoice.findByIdAndUpdate(
+        invoiceId,
+        { sent: true, status: 'sent' },
+        { returnDocument: 'after' }
+    ).lean();
+    revalidatePath("/invoices");
+    return invoice ? { success: true } : { success: false };
+}
+
+export async function sendInvoiceEmail(clientEmail, invoiceData) {
+    const {
+        userId: user,
+        clientId: client,
+        projectId: project,
+        commitList,
+        invoiceNumber,
+        issueDate,
+        dueDate,
+        currency,
+        notes
+    } = invoiceData;
+
+    const formatDateLocal = (date) => {
+        if (!date) return "N/A";
+        return new Date(date).toLocaleDateString("en-GB");
+    };
+
+    const rate = project?.rate || 0;
+    const taxRate = project?.taxRate || 0;
+
+    const subtotal = (commitList || []).reduce((acc, item) => {
+        const seconds = Number(isFinite(item.duration) ? item.duration : 0);
+        const total = (seconds / 3600) * rate;
+        return acc + total;
+    }, 0);
+
+    const tax = subtotal * (taxRate / 100);
+    const totalDue = subtotal + tax;
+
+    // Format line items for HTML
+    const lineItemsHTML = (commitList || []).map((item, index) => `
+        <tr style="background-color: ${index % 2 === 1 ? '#f9fafb' : '#ffffff'};">
+            <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+                <div style="font-weight: bold; color: #1f2937;">${item.description || 'Development Work'}</div>
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${formatDateLocal(item.createdAt)}</div>
+            </td>
+            <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
+                ${((item.duration || 0) / 3600).toFixed(2)} hrs
+            </td>
+            <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #1f2937;">
+                ${currency} ${(((item.duration || 0) / 3600) * rate).toFixed(2)}
+            </td>
+        </tr>
+    `).join('');
+
+    // Payment details (like in InvoicesList.jsx)
+    let paymentDetailsHTML = '';
+    if (user?.bankAccounts && Array.isArray(user.bankAccounts)) {
+        const defaultBank = user.bankAccounts.find(b => b.isDefault) || user.bankAccounts[0];
+        if (defaultBank) {
+            paymentDetailsHTML = `
+          <div style="background: #eef2ff; border-left: 4px solid #6366f1; padding: 20px; border-radius: 8px; margin: 32px 0 24px 0;">
+            <h4 style="font-weight: bold; color: #1f2937; font-size: 15px; margin-bottom: 8px;">Payment Details</h4>
+            ${defaultBank.bankName ? `<div style='color:#374151;font-size:14px;margin-bottom:4px;'>Bank: ${defaultBank.bankName}</div>` : ''}
+            ${defaultBank.accountOwnerFirstName && defaultBank.accountOwnerLastName ? `<div style='color:#374151;font-size:14px;margin-bottom:4px;'>Bank Account Holder: ${defaultBank.accountOwnerFirstName} ${defaultBank.accountOwnerLastName}</div>` : ''}
+            ${defaultBank.iban ? `<div style='color:#374151;font-size:14px;margin-bottom:4px;'>IBAN: ${defaultBank.iban}</div>` : ''}
+            <div style='color:#374151;font-size:14px;margin-bottom:4px;'>Reference: ${invoiceNumber}</div>
+          </div>
+        `;
+        }
+    }
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        </style>
+    </head>
+    <body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; background-color: #f3f4f6; padding: 40px 20px; margin: 0;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); overflow: hidden; border: 1px solid #e5e7eb;">
+            <!-- Header -->
+            <div style="padding: 40px; border-bottom: 1px solid #f3f4f6;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="vertical-align: top;">
+                            <div style="font-size: 24px; font-weight: 700; color: #4f46e5; letter-spacing: -0.02em;">${user?.businessName || user?.name || 'Invoicing Portal'}</div>
+                        </td>
+
+                        <td style="text-align: right; vertical-align: top;">
+                            <h1 style="font-size: 32px; font-weight: 800; color: #111827; margin: 0; letter-spacing: -0.03em;">INVOICE</h1>
+                            <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">#${invoiceNumber}</p>
+                        </td>
+                    </tr>
+                </table>
+                <img src=${user.avatar || user.logo} style="width=20px; height=20px;">
+            </div>
+
+            <!-- Addresses -->
+            <div style="padding: 40px 40px 20px 40px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td width="50%" style="vertical-align: top; padding-right: 20px;">
+                            <p style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.05em; margin-bottom: 8px;">From</p>
+                            <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0;">${user?.name || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${user?.email || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0; line-height: 1.5;">${user?.address || ''}</p>
+                        </td>
+                        <td width="50%" style="vertical-align: top;">
+                            <p style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.05em; margin-bottom: 8px;">Bill To</p>
+                            <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0;">${client?.clientName || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${client?.clientEmail || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${client?.address || client?.clientCountry || ''}</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Dates -->
+            <div style="margin: 0 40px 30px 40px; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="text-align: center;">
+                            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px;">Date</p>
+                            <p style="font-size: 14px; font-weight: 700; color: #111827; margin: 0;">${formatDateLocal(issueDate)}</p>
+                        </td>
+                        <td style="text-align: center;">
+                            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px;">Due Date</p>
+                            <p style="font-size: 14px; font-weight: 700; color: #111827; margin: 0;">${formatDateLocal(dueDate)}</p>
+                        </td>
+                        <td style="text-align: center;">
+                            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px;">Currency</p>
+                            <p style="font-size: 14px; font-weight: 700; color: #111827; margin: 0;">${currency}</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+
+            <!-- Items -->
+            <div style="padding: 0 0 20px 0;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #4f46e5;">
+                            <th style="padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Description</th>
+                            <th style="padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Qty</th>
+                            <th style="padding: 12px 20px; text-align: right; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lineItemsHTML}
+                    </tbody>
+                </table>
+            </div>
+            ${paymentDetailsHTML}
+
+            <!-- Totals -->
+            <div style="padding: 20px 40px 40px 40px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td width="60%"></td>
+                        <td width="40%">
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Subtotal</td>
+                                    <td style="padding: 8px 0; font-size: 14px; text-align: right; color: #111827;">${currency} ${subtotal.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Tax (${taxRate}%)</td>
+                                    <td style="padding: 8px 0; font-size: 14px; text-align: right; color: #111827;">${currency} ${tax.toFixed(2)}</td>
+                                </tr>
+                                <tr style="border-top: 2px solid #4f46e5;">
+                                    <td style="padding: 15px 0 0 0; font-size: 18px; font-weight: 700; color: #111827;">Total Due</td>
+                                    <td style="padding: 15px 0 0 0; font-size: 20px; font-weight: 800; text-align: right; color: #4f46e5;">${currency} ${totalDue.toFixed(2)}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 40px; text-align: center; border-top: 1px solid #f3f4f6; background-color: #fafafa;">
+                ${notes ? `
+                    <div style="margin-bottom: 25px; padding: 20px; background-color: #fdf2f2; border-left: 4px solid #ef4444; text-align: left; font-style: italic; color: #991b1b; font-size: 14px; border-radius: 4px;">
+                        "${notes}"
+                    </div>
+                ` : ''}
+                <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                    Thank you for your business — ${user?.name || ''} • ${user?.email || ''}
+                </p>
+                <p style="font-size: 11px; color: #d1d5db; margin: 8px 0 0 0;">
+                    Generated by your Invoicing Portal
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.NODE_MAILER_EMAIL,
+                pass: process.env.NODE_MAILER_PW,
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"Invoice app" <${process.env.NODE_MAILER_EMAIL}>`,
+            to: client?.clientEmail,
+            subject: `Invoice #${invoiceNumber} from ${user?.businessName || user?.name || 'Freelancer'}`,
+            html: htmlContent,
+        });
+
+        return { success: true, message: "Email sent successfully!" };
+    } catch (error) {
+        console.error("Error sending email:", error);
+        return { success: false, message: "Failed to send email." };
+    }
+}
