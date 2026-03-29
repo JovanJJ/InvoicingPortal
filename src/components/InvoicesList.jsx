@@ -8,6 +8,7 @@ import { invoiceNotes, updateInvoiceStatus, deletePaymentUpdate, updateInvoiceDe
 import InvoicesFilter from "./InvoicesFilter";
 import PdfButton from "./PDF/PdfButton";
 import Image from "next/image";
+import InvoiceEmailPreview from "./InvoiceEmailPreview";
 
 export default function InvoicesList({ invoices, projectNames, clientNames, currencies }) {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
   const [editFormData, setEditFormData] = useState(null);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [singleNoteContent, setSingleNoteContent] = useState("");
-
+  const [invoicePreview, setInvoicePreview] = useState(null);
 
   setTimeout(() => {
     setResponseMessages("");
@@ -121,8 +122,9 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
 
   return (
     <>
-
       <InvoicesFilter invoices={invoices} projectNames={projectNames} clientNames={clientNames} />
+
+      {invoicePreview && <InvoiceEmailPreview invoice={invoicePreview} onClose={() => setInvoicePreview(null)} />}
 
       {
         invoices.map((invoice, i) => {
@@ -307,7 +309,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                   existingInvoice={invoice}
                                 />
                                 <button
-                                  onClick={() => sendInvoiceToClient(invoice)}
+                                  onClick={() => setInvoicePreview(invoice)}
                                   disabled={isSendingEmail}
                                   className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors ${isSendingEmail ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
