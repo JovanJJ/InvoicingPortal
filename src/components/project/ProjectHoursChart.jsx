@@ -11,7 +11,6 @@ import {
 } from 'recharts'
 import { getDailyHoursForProject } from "@/lib/actions";
 
-// converts seconds to readable string for tooltip
 function formatTooltip(seconds) {
   const hours = (seconds / 3600).toFixed(1)
   const minutes = Math.round(seconds / 60)
@@ -21,7 +20,6 @@ function formatTooltip(seconds) {
   return `${hours}h (${minutes}min)`
 }
 
-// custom tooltip popup on hover
 function CustomTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null
 
@@ -50,13 +48,10 @@ export default function ProjectHoursChart({ projectId }) {
   useEffect(() => {
     async function fetchChartData() {
       try {
-        // get user timezone from browser
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-        // fetch raw seconds from server
         const result = await getDailyHoursForProject(projectId, timezone)
 
-        // convert seconds to hours for bar height, keep seconds for tooltip
         const converted = result.map(day => ({
           date: day.date,
           hours: Math.round((day.seconds / 3600) * 10) / 10,
@@ -89,19 +84,19 @@ export default function ProjectHoursChart({ projectId }) {
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            vertical={false}  // only horizontal grid lines
+            vertical={false}
             stroke="#333"
           />
 
           <XAxis
-            dataKey="date"      // reads date field from each object
+            dataKey="date"
             tick={{ fill: '#aaa', fontSize: 12 }}
             axisLine={false}
             tickLine={false}
           />
 
           <YAxis
-            unit="h"            // shows "2h" "4h" on axis
+            unit="h"
             tick={{ fill: '#aaa', fontSize: 12 }}
             axisLine={false}
             tickLine={false}
@@ -111,10 +106,10 @@ export default function ProjectHoursChart({ projectId }) {
           <Tooltip content={<CustomTooltip />} />
 
           <Bar
-            dataKey="hours"     // reads hours field for bar height
-            fill="#6366f1"
-            radius={[4, 4, 0, 0]}   // rounded top corners
-            maxBarSize={50}          // bars dont get too wide on few days
+            dataKey="hours"
+            fill="#0085fa"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={50}
           />
         </BarChart>
       </ResponsiveContainer>

@@ -1173,7 +1173,13 @@ export async function markSentInvoice(invoiceId) {
     return invoice ? { success: true } : { success: false };
 }
 
-export async function sendInvoiceEmail(clientEmail, invoiceData) {
+export async function deleteInvoice(invoiceId){
+await connectDB();
+const res = await Invoice.findByIdAndDelete(invoiceId);
+revalidatePath("/invoices");
+}
+
+export async function sendInvoiceEmail(invoiceData) {
     const {
         userId: user,
         clientId: client,
@@ -1183,7 +1189,8 @@ export async function sendInvoiceEmail(clientEmail, invoiceData) {
         issueDate,
         dueDate,
         currency,
-        notes
+        notes,
+        totalAmount
     } = invoiceData;
 
     const formatDateLocal = (date) => {
@@ -1194,11 +1201,14 @@ export async function sendInvoiceEmail(clientEmail, invoiceData) {
     const rate = project?.rate || 0;
     const taxRate = project?.taxRate || 0;
 
-    const subtotal = (commitList || []).reduce((acc, item) => {
-        const seconds = Number(isFinite(item.duration) ? item.duration : 0);
-        const total = (seconds / 3600) * rate;
-        return acc + total;
-    }, 0);
+    const isFixed = project?.paymentType === 'fixed';
+    const subtotal = isFixed 
+        ? (Number(totalAmount) || 0)
+        : (commitList || []).reduce((acc, item) => {
+            const seconds = Number(isFinite(item.duration) ? item.duration : 0);
+            const total = (seconds / 3600) * rate;
+            return acc + total;
+        }, 0);
 
     const tax = subtotal * (taxRate / 100);
     const totalDue = subtotal + tax;
@@ -1213,9 +1223,11 @@ export async function sendInvoiceEmail(clientEmail, invoiceData) {
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
                 ${((item.duration || 0) / 3600).toFixed(2)} hrs
             </td>
+            ${!isFixed ? `
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #1f2937;">
                 ${currency} ${(((item.duration || 0) / 3600) * rate).toFixed(2)}
             </td>
+            ` : ''}
         </tr>
     `).join('');
 
@@ -1273,12 +1285,14 @@ export async function sendInvoiceEmail(clientEmail, invoiceData) {
                             <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0;">${user?.name || ''}</p>
                             <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${user?.email || ''}</p>
                             <p style="font-size: 14px; color: #4b5563; margin: 2px 0; line-height: 1.5;">${user?.address || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0; line-height: 1.5;">Tax ID: ${user?.taxIdType || ''} ${user?.taxIdNumber || ''}</p>
                         </td>
                         <td width="50%" style="vertical-align: top;">
                             <p style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.05em; margin-bottom: 8px;">Bill To</p>
                             <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0;">${client?.clientName || ''}</p>
                             <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${client?.clientEmail || ''}</p>
                             <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">${client?.address || client?.clientCountry || ''}</p>
+                            <p style="font-size: 14px; color: #4b5563; margin: 2px 0;">Tax ID: ${client?.taxIdType || ''} ${client?.taxIdNumber || ''}</p>
                         </td>
                     </tr>
                 </table>
@@ -1311,8 +1325,8 @@ export async function sendInvoiceEmail(clientEmail, invoiceData) {
                     <thead>
                         <tr style="background-color: #4f46e5;">
                             <th style="padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Description</th>
-                            <th style="padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Qty</th>
-                            <th style="padding: 12px 20px; text-align: right; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Total</th>
+                            <th style="padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">${isFixed ? 'Duration' : 'Qty'}</th>
+                            ${!isFixed ? `<th style="padding: 12px 20px; text-align: right; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Total</th>` : ''}
                         </tr>
                     </thead>
                     <tbody>

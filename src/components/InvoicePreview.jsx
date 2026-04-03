@@ -15,9 +15,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const [edditing, setEdditing] = useState(null);
     const [note, setNote] = useState("");
 
-
     const unbilledEntries = timeEntries.filter(e => e.invoiceId === null || e.invoiceId === undefined);
-
 
     const lineItems = unbilledEntries.map(e => {
         const isEditing = edditing === e._id;
@@ -34,7 +32,8 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     });
 
     const issueDate = new Date().toLocaleDateString('en-GB');
-    const subtotal = lineItems.reduce((acc, item) => acc + Number(item.total), 0);
+    const isFixed = project.paymentType === 'fixed';
+    const subtotal = isFixed ? Number(project.rate) : lineItems.reduce((acc, item) => acc + Number(item.total), 0);
     const tax = (Number(project.taxRate) / 100 * subtotal).toFixed(2);
     const total = (Number(subtotal) + Number(tax)).toFixed(2);
 
@@ -58,15 +57,12 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     return (
         <div className="absolute inset-0 backdrop-blur-[2px] z-40 transition-opacity py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto border bg-white p-4 border-indigo-400 rounded-lg ">
-                {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Invoice Preview</h1>
                 </div>
 
-                {/* Invoice Container */}
                 <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12">
 
-                    {/* HEADER */}
                     <div className="flex justify-between items-start mb-10">
                         <div>
                             {user.logo && (
@@ -85,9 +81,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                         </div>
                     </div>
 
-                    {/* FROM / TO SECTION */}
                     <div className="grid grid-cols-2 gap-8 mb-10 pb-10 border-b border-gray-200">
-                        {/* From */}
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                                 From
@@ -100,7 +94,6 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                             )}
                         </div>
 
-                        {/* Bill To */}
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                                 Bill To
@@ -112,7 +105,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                         </div>
                     </div>
 
-                    {/* DATES SECTION */}
+
                     <div className="grid grid-cols-4 gap-4 mb-10 bg-gray-50 p-4 rounded-lg">
                         <div className="text-center">
                             <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Invoice Date</p>
@@ -145,34 +138,38 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
                     {isOpen && (
                         <>
-                            {/* LINE ITEMS TABLE */}
+
                             <div className="mb-10">
                                 <div className="bg-indigo-600 flex justify-between items-center text-white rounded-t-lg">
                                     <div className="flex w-full items-center gap-4 p-4">
-                                        <div className="w-5/12">
+                                        <div className={isFixed ? "w-9/12" : "w-5/12"}>
                                             <p className="text-xs font-bold uppercase">Description</p>
                                         </div>
                                         <div className="w-2/12">
                                             <p className="text-xs font-bold uppercase">Hours/Min</p>
                                         </div>
-                                        <div className="w-2/12">
-                                            <p className="text-xs font-bold uppercase">Rate</p>
-                                        </div>
-                                        <div className="w-2/12 text-right">
-                                            <p className="text-xs font-bold uppercase">Total</p>
-                                        </div>
+                                        {!isFixed && (
+                                            <>
+                                                <div className="w-2/12">
+                                                    <p className="text-xs font-bold uppercase">Rate</p>
+                                                </div>
+                                                <div className="w-2/12 text-right">
+                                                    <p className="text-xs font-bold uppercase">Total</p>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="w-1/12 text-right">
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Table Rows */}
+
                                 {lineItems.map((item, index) => (
                                     <div
                                         key={index}
                                         className={`flex w-full items-center gap-4 p-4 border-b border-gray-200 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
                                     >
-                                        <div className="w-5/12">
+                                        <div className={isFixed ? "w-9/12" : "w-5/12"}>
                                             {edditing === item.id ? (
                                                 <textarea onChange={(e) => setUpdateDescription(e.target.value)} className='border border-gray-200 p-1 rounded w-full' type='text' value={updateDescription} />
                                             ) : (
@@ -191,14 +188,18 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                                 <p className="text-sm text-gray-700">{item.hours}</p>
                                             )}
                                         </div>
-                                        <div className="w-2/12">
-                                            <p className="text-sm text-gray-700">{item.rate}</p>
-                                        </div>
-                                        <div className="w-2/12 text-right">
-                                            <p className="text-sm text-gray-700 font-medium">
-                                                {item.total}
-                                            </p>
-                                        </div>
+                                        {!isFixed && (
+                                            <>
+                                                <div className="w-2/12">
+                                                    <p className="text-sm text-gray-700">{item.rate}</p>
+                                                </div>
+                                                <div className="w-2/12 text-right">
+                                                    <p className="text-sm text-gray-700 font-medium">
+                                                        {item.total}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="w-1/12 flex gap-5 text-right">
                                             <p
                                                 onClick={async () => {
@@ -248,7 +249,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                 </div>
                             </div>
 
-                            {/* PAYMENT INFO SECTION */}
+
                             <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded mb-10">
                                 <h4 className="font-bold text-gray-900 text-sm mb-2">Payment Details</h4>
                                 <p className="text-sm text-gray-700 mb-1">Bank: {bankIban.bankName}</p>
@@ -268,7 +269,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                 </div>
                             </div>
 
-                            {/* FOOTER */}
+
                             <div className="border-t border-gray-200 pt-6 text-center">
                                 <p className="text-xs text-gray-500">
                                     Thank you for your business — {user.name} • {user.email}
@@ -276,7 +277,6 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                             </div>
 
                             <div className="text-center my-4 space-x-5">
-                                {/*<GenerateInvoiceButton project={project} client={client} timeEntries={timeEntries} user={user} getCommitMessages={getCommitMessages} />*/}
                                 {!message && <button onClick={handleSaveInvoice} className='px-2 py-2 bg-blue-300 rounded active:bg-blue-200 cursor-pointer'>Save Invoice</button>}
                                 <button
                                     onClick={() => handleInvoicePreview(false)}

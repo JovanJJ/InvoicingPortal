@@ -41,12 +41,12 @@ export default function ProgressBar({ estimatedHours, seconds, projectId }) {
 
 
   return (
-    <section className="w-full py-8 px-8 bg-white">
+    <section className="w-full py-8 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900">Progress</h3>
-            <span className="text-2xl font-bold text-green-600">{percentage.toFixed()}% <span className="text-[18px]">(Estimated hours: {estimatedHours})</span></span>
+            <span className="text-2xl font-bold text-green-600">{!percentage? 0 : percentage.toFixed()}% <span className="text-[18px]">(Estimated hours: {estimatedHours})</span></span>
           </div>
 
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">

@@ -47,6 +47,8 @@ export default function PdfButton({ project, client, timeEntries, user, getCommi
         bankAccount,
         taxRate: project?.taxRate || 0,
         notes: existingInvoice.notes,
+        paymentType: project?.paymentType || 'hourly',
+        totalAmount: existingInvoice.totalAmount || 0,
       }
     } else {
       const unbilledEntries = timeEntries.filter(entry => entry.invoiceId === null || entry.invoiceId === undefined);
@@ -92,6 +94,8 @@ export default function PdfButton({ project, client, timeEntries, user, getCommi
         bankAccount,
         taxRate: project.taxRate,
         notes: user.invoiceNotes,
+        paymentType: project.paymentType || 'hourly',
+        totalAmount: project.rate || 0,
       }
 
       await Promise.all(unbilledEntries.map(entry => splitTimeEntryByInvoice(entry._id, invoiceId)));

@@ -6,12 +6,12 @@ import OpenDescription from './project/OpenDescriptionHtml';
 import IsModalOpen from './project/IsModalOpen';
 import ProjectPageHtml from './project/ProjectPageHtml';
 import ProgressBar from './ProgressBar';
-import GenerateInvoiceButton from './PDF/PdfButton';
 import InvoicePreview from './InvoicePreview';
 import InvoicePreviewButton from './InvoicePreviewButton';
+import FixedRateProgressBar from './FixedRateProgressBar';
 
 
-export default function Stopwatch({ projectId, userId, project, client, userData, bankIban }) {
+export default function Stopwatch({ projectId, userId, project, client, userData, bankIban, fixedRateProgressData }) {
   const [timerId, setTimerId] = useState(null);
   const [status, setStatus] = useState("noWatch");
   const [seconds, setSeconds] = useState(0);
@@ -155,7 +155,10 @@ export default function Stopwatch({ projectId, userId, project, client, userData
         <IsModalOpen setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} wasRunning={wasRunning} />
       }
       <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={commitList} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} />
-      <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} projectId={projectId} />
+
+      {project.paymentType === "hourly" && <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} projectId={projectId} />}
+      {project.paymentType === "fixed" && <FixedRateProgressBar fixedRateProgressData={fixedRateProgressData} />}
+
       <InvoicePreviewButton handleInvoicePreview={handleInvoicePreview} />
       {invoicePreview && <InvoicePreview handleInvoicePreview={handleInvoicePreview} project={project} client={client} timeEntries={commitList} user={userData} getCommitMessages={getCommitMessages} bankIban={bankIban} />}
     </>

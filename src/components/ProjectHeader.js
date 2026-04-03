@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { updateProject, updateClient } from '@/lib/actions';
-import Image from 'next/image';
 
-export default function ProjectHeader({ project, client, userImage, bankAccounts, currencies }) {
-  const [selectedAccount, setSelectedAccount] = useState(project.bankAccountId);
+export default function ProjectHeader({ project, client, bankAccounts, currencies }) {
+  const [selectedAccount, setSelectedAccount] = useState(project.bankAccountId || "");
   const [isEditing, setIsEditing] = useState(false);
   const [success, message] = useState("");
   const [formData, setFormData] = useState({
@@ -26,11 +25,6 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-
-
-
-
-
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -170,7 +164,7 @@ export default function ProjectHeader({ project, client, userImage, bankAccounts
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               >
                 {currencies.map((currency) => (
-                  <option key={currency._id} value={currency.name}>
+                  <option key={currency.id} value={currency.name}>
                     {currency.name}
                   </option>
                 ))}

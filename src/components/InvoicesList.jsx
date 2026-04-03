@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "./helper/formatDate";
 import formatDurationForInvoice from "./FormatDurationForInvoice";
-import { invoiceNotes, updateInvoiceStatus, deletePaymentUpdate, updateInvoiceDetails, sendInvoiceEmail, markSentInvoice } from "@/lib/actions";
+import { invoiceNotes, deletePaymentUpdate, updateInvoiceDetails, deleteInvoice } from "@/lib/actions";
 import InvoicesFilter from "./InvoicesFilter";
 import PdfButton from "./PDF/PdfButton";
 import Image from "next/image";
@@ -20,10 +20,12 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [singleNoteContent, setSingleNoteContent] = useState("");
   const [invoicePreview, setInvoicePreview] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [invoiceDelete, setInvoiceDelete] = useState(false);
 
   setTimeout(() => {
     setResponseMessages("");
-  }, 6000)
+  }, 7000)
 
   const handleSaveSingleNote = async (invoiceId) => {
     const res = await updateInvoiceDetails(invoiceId, { notes: singleNoteContent });
@@ -97,27 +99,9 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
     setResponseMessages(res.message);
   }
 
-  const handleInvoiceStatusSubmit = async (e, projectId) => {
-    e.preventDefault();
-    const status = e.target.status.value;
-    const res = await updateInvoiceStatus(projectId, status);
-    setResponseMessages(res.message);
-  }
-
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
-
-  const sendInvoiceToClient = async (invoice) => {
-    setIsSendingEmail(true);
-    const clientEmail = invoice.clientId?.clientEmail;
-    if (!clientEmail) {
-      setResponseMessages("Client email not found.");
-      setIsSendingEmail(false);
-      return;
-    }
-    const res = await sendInvoiceEmail(clientEmail, invoice);
-    await markSentInvoice(invoice._id.toString());
-    setResponseMessages(res.message);
-    setIsSendingEmail(false);
+  const handleDeleteInvoice = async (invoiceId) => {
+    setInvoiceDelete(false)
+    const res = await deleteInvoice(invoiceId);
   }
 
   return (
@@ -138,11 +122,14 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
           const rate = invoice.projectId?.rate || 0;
           const taxRate = invoice.projectId?.taxRate || 0;
 
-          const computedSubtotal = currentCommitList.reduce((acc, item) => {
-            const seconds = isEditing ? (Number(item.durationMinutes) * 60) : Number(item.duration);
-            const total = (seconds / 3600) * rate;
-            return acc + total;
-          }, 0);
+          const isFixed = invoice.projectId?.paymentType === "fixed";
+          const computedSubtotal = isFixed
+            ? (Number(invoice.totalAmount) || 0)
+            : currentCommitList.reduce((acc, item) => {
+              const seconds = isEditing ? (Number(item.durationMinutes) * 60) : Number(item.duration);
+              const total = (seconds / 3600) * rate;
+              return acc + total;
+            }, 0);
 
           const computedTax = computedSubtotal * (taxRate / 100);
           const computedTotalDue = computedSubtotal + computedTax;
@@ -152,7 +139,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
             <div key={invoice._id}>
 
               <div className="bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-4xl mx-auto  border  border-indigo-400 rounded-lg p-4">
+                <div className="max-w-4xl mx-auto  border  border-gray-300 rounded-lg p-4">
 
                   <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Invoice Preview {i + 1}</h1>
@@ -162,7 +149,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
 
 
                   <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12">
-                    
+
 
                     <div className="flex justify-between items-start">
                       <div>
@@ -175,13 +162,13 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                         <p className="text-sm text-gray-500 mt-1">#{invoice.invoiceNumber}</p>
                       </div>
                     </div>
-                      {invoice.userId.logo && (
-                        <div className="mb-5">
-                          <div className=" w-20 h-20 relative">
-                            <Image fill src={invoice.userId.logo} className="w-20 h-20 object-cover" alt="Logo" />
-                          </div>
+                    {invoice.userId.logo && (
+                      <div className="mb-5">
+                        <div className=" w-20 h-20 relative">
+                          <Image fill src={invoice.userId.logo} className="w-20 h-20 object-cover" alt="Logo" />
                         </div>
-                      )}
+                      </div>
+                    )}
 
 
                     <div className="grid grid-cols-2 gap-8 mb-10 pb-10 border-b border-gray-200">
@@ -213,7 +200,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                     </div>
 
 
-                    <div className="grid grid-cols-4 gap-4 mb-10 bg-gray-50 p-4 rounded-lg items-center">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 bg-gray-50 p-4 rounded-lg items-center">
                       <div className="text-center">
                         <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Invoice Date</p>
                         {editingInvoiceId === invoice._id ? (
@@ -286,7 +273,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
 
                     <div className="text-center my-4 space-x-4">
                       {editingInvoiceId !== invoice._id ? (
-                        <>
+                        <div className="flex justify-center">
                           <button
                             onClick={() => toggleInvoice(invoice._id)}
                             className={`bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors ${isOpen && 'hidden'}`}
@@ -295,7 +282,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                           </button>
                           {isOpen && (
                             <>
-                              <div className="flex justify-center gap-5">
+                              <div className="flex flex-col md:flex-row justify-center gap-5">
                                 <button
                                   onClick={() => handleEditClick(invoice)}
                                   className="bg-white border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors"
@@ -311,15 +298,34 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                 <button
                                   onClick={() => setInvoicePreview(invoice)}
                                   disabled={isSendingEmail}
-                                  className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors ${isSendingEmail ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  className={`bg-green-500 text-white w-fit px-4 py-2 rounded hover:bg-green-600 transition-colors ${isSendingEmail ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                   {isSendingEmail ? 'Sending...' : 'Send Invoice to Client'}
                                 </button>
+                                {!invoiceDelete &&
+                                  <button
+                                    onClick={() => setInvoiceDelete(true)}
+                                    className="bg-red-500  px-4 py-2 rounded hover:bg-red-400 text-white transition-colors"
+                                  >
+                                    Delete Invoice
+                                  </button>
+                                }
+                                {invoiceDelete &&
+                                  <div className="flex group items-center gap-3">
+                                    <p>Are you sure</p>
+                                    <button onClick={() => handleDeleteInvoice(invoice._id.toString())} className="bg-green-500 h-full cursor-pointer text-white px-2 rounded">
+                                      yes
+                                    </button>
+
+                                    <button onClick={() => setInvoiceDelete(false)} className="bg-red-500 h-full cursor-pointer text-white px-2 rounded">
+                                      reject
+                                    </button>
+                                  </div>
+                                }
                               </div>
-                              <div className={`mt-3 ${responseMessages === "Email sent successfully!" ? "text-green-500" : "text-red-400"}`}>{responseMessages}</div>
                             </>
                           )}
-                        </>
+                        </div>
                       ) : (
                         <>
                           <button
@@ -337,25 +343,24 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                         </>
                       )}
                     </div>
-
                     {isOpen &&
                       <>
-
                         <div className="mb-10">
-                          <div className="bg-indigo-600 text-white rounded-t-lg">
-                            <div className="grid grid-cols-12 gap-4 p-4">
-                              <div className="col-span-6">
+                          <div className={`my-3 mx-auto w-fit ${responseMessages === "Email sent successfully!" && "text-green-500"} ${responseMessages === "Invoice updated successfully." && "text-green-500"}`}>{responseMessages}</div>
+                          <div className="hidden sm:block bg-indigo-600 text-white rounded-t-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 p-4">
+                              <div className="sm:col-span-6">
                                 <p className="text-xs font-bold uppercase">Description</p>
                               </div>
-                              <div className="col-span-2">
+                              <div className="sm:col-span-2">
                                 <p className="text-xs font-bold uppercase">Hours/Min</p>
                               </div>
-                              <div className="col-span-2">
+                              {invoice.projectId.paymentType === "hourly" && <div className="sm:col-span-2">
                                 <p className="text-xs font-bold uppercase">Rate</p>
-                              </div>
-                              <div className="col-span-2 text-right">
+                              </div>}
+                              {invoice.projectId.paymentType === "hourly" && <div className="sm:col-span-2 sm:text-right">
                                 <p className="text-xs font-bold uppercase">Total</p>
-                              </div>
+                              </div>}
                             </div>
                           </div>
 
@@ -363,58 +368,132 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                           {(editingInvoiceId === invoice._id ? editFormData.commitList : invoice.commitList).map((item, index) => (
                             <div
                               key={index}
-                              className={`grid grid-cols-12 gap-4 p-4 border-b border-gray-200 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'
-                                }`}
+                              className={`border-b border-gray-200 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
                             >
-                              <div className="col-span-6">
-                                {editingInvoiceId === invoice._id ? (
-                                  <>
-                                    <textarea
-                                      value={item.description || ''}
-                                      onChange={(e) => handleCommitChange(index, 'description', e.target.value)}
-                                      className="w-full text-sm text-gray-900 font-medium bg-white border border-gray-300 rounded p-1 mb-1 outline-none focus:border-indigo-500"
-                                      rows={2}
-                                    />
-                                    {item.createdAt && (
-                                      <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                              {/* Mobile layout */}
+                              <div className="block sm:hidden p-4">
+                                <div className="flex items-start">
+                                  <div className="w-1/3 text-xs font-bold text-gray-500">Description</div>
+                                  <div className="w-2/3 text-sm text-gray-900">
+                                    {editingInvoiceId === invoice._id ? (
+                                      <>
+                                        <textarea
+                                          value={item.description || ''}
+                                          onChange={(e) => handleCommitChange(index, 'description', e.target.value)}
+                                          className="w-full text-sm text-gray-900 font-medium bg-white border border-gray-300 rounded p-1 mb-1 outline-none focus:border-indigo-500"
+                                          rows={2}
+                                        />
+                                        {item.createdAt && (
+                                          <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm text-gray-900 font-medium">{item.description || 'N/A'}</p>
+                                        {item.createdAt && (
+                                          <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                        )}
+                                      </>
                                     )}
-                                  </>
-                                ) : (
-                                  <>
-                                    <p className="text-sm text-gray-900 font-medium">{item.description || 'N/A'}</p>
-                                    {item.createdAt && (
-                                      <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                              <div className="col-span-2">
-                                {editingInvoiceId === invoice._id ? (
-                                  <div className="flex flex-col items-start">
-                                    <input
-                                      type="number"
-                                      value={item.durationMinutes}
-                                      onChange={(e) => handleCommitChange(index, 'durationMinutes', e.target.value)}
-                                      className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded p-1 outline-none focus:border-indigo-500"
-                                      placeholder="Mins"
-                                    />
-                                    <span className="text-xs text-gray-400 mt-1">minutes</span>
                                   </div>
-                                ) : (
-                                  <p className="text-sm text-gray-700">{formatDurationForInvoice(item.duration)}</p>
+                                </div>
+
+                                <div className="mt-3 flex justify-between text-sm text-gray-700">
+                                  <div>
+                                    <div className="text-xs text-gray-500">Hours/Min</div>
+                                    <div>
+                                      {editingInvoiceId === invoice._id ? (
+                                        <div className="flex flex-col items-start">
+                                          <input
+                                            type="number"
+                                            value={item.durationMinutes}
+                                            onChange={(e) => handleCommitChange(index, 'durationMinutes', e.target.value)}
+                                            className="w-24 text-sm text-gray-700 bg-white border border-gray-300 rounded p-1 outline-none focus:border-indigo-500"
+                                            placeholder="Mins"
+                                          />
+                                          <span className="text-xs text-gray-400 mt-1">minutes</span>
+                                        </div>
+                                      ) : (
+                                        <span>{formatDurationForInvoice(item.duration)}</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {!isFixed && (
+                                    <>
+                                      <div>
+                                        <div className="text-xs text-gray-500">Rate</div>
+                                        <div className="text-sm text-gray-700">{invoice.projectId?.rate || 0}</div>
+                                      </div>
+
+                                      <div className="text-right">
+                                        <div className="text-xs text-gray-500">Total</div>
+                                        <div className="text-sm text-gray-700 font-medium">
+                                          {isEditing && invoice.projectId.paymentType === "hourly"
+                                            ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
+                                            : ((item.duration / 3600) * (invoice.projectId?.rate || 0)).toFixed(2)}
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Desktop layout */}
+                              <div className="hidden sm:grid sm:grid-cols-12 gap-4 p-4">
+                                <div className="sm:col-span-6">
+                                  {editingInvoiceId === invoice._id ? (
+                                    <>
+                                      <textarea
+                                        value={item.description || ''}
+                                        onChange={(e) => handleCommitChange(index, 'description', e.target.value)}
+                                        className="w-full text-sm text-gray-900 font-medium bg-white border border-gray-300 rounded p-1 mb-1 outline-none focus:border-indigo-500"
+                                        rows={2}
+                                      />
+                                      {item.createdAt && (
+                                        <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm text-gray-900 font-medium">{item.description || 'N/A'}</p>
+                                      {item.createdAt && (
+                                        <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                                <div className={`${isFixed ? 'sm:col-span-4' : 'sm:col-span-2'}`}>
+                                  {editingInvoiceId === invoice._id ? (
+                                    <div className="flex flex-col items-start">
+                                      <input
+                                        type="number"
+                                        value={item.durationMinutes}
+                                        onChange={(e) => handleCommitChange(index, 'durationMinutes', e.target.value)}
+                                        className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded p-1 outline-none focus:border-indigo-500"
+                                        placeholder="Mins"
+                                      />
+                                      <span className="text-xs text-gray-400 mt-1">minutes</span>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-700">{formatDurationForInvoice(item.duration)}</p>
+                                  )}
+                                </div>
+                                {!isFixed && (
+                                  <>
+                                    <div className="sm:col-span-2">
+                                      <p className="text-sm text-gray-700">{invoice.projectId?.rate || 0}</p>
+                                    </div>
+                                    <div className="sm:col-span-2 sm:text-right">
+                                      <p className="text-sm text-gray-700 font-medium">
+                                        {isEditing
+                                          ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
+                                          : ((item.duration / 3600) * (invoice.projectId?.rate || 0)).toFixed(2)
+                                        }
+                                      </p>
+                                    </div>
+                                  </>
                                 )}
-                              </div>
-                              <div className="col-span-2">
-                                <p className="text-sm text-gray-700">
-                                  {invoice.projectId?.rate || 0}
-                                </p>
-                              </div>
-                              <div className="col-span-2 text-right">
-                                <p className="text-sm text-gray-700 font-medium">
-                                  {editingInvoiceId === invoice._id
-                                    ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
-                                    : ((item.duration / 3600) * (invoice.projectId?.rate || 0)).toFixed(2)}
-                                </p>
                               </div>
                             </div>
                           ))}
@@ -426,13 +505,13 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                             <div className="flex justify-between py-2 border-b border-gray-200">
                               <span className="text-sm text-gray-600">Subtotal</span>
                               <span className="text-sm text-gray-900">
-                                {computedSubtotal.toFixed(2)} {invoice.currency}
+                                {isFixed ? invoice.projectId.rate : computedSubtotal.toFixed(2)} {invoice.currency}
                               </span>
                             </div>
 
                             <div className="flex justify-between py-2 border-b border-gray-200">
                               <span className="text-sm text-gray-600">
-                                Tax {taxRate}%
+                                Tax  {taxRate}%
                               </span>
                               <span className="text-sm text-gray-900">
                                 {computedTax.toFixed(2)} {invoice.currency}
@@ -512,36 +591,32 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                         </div>
 
 
-                        <div className="border-t border-gray-200 pt-6 text-center">
-                          <p className="text-xs text-gray-500">
-                            Thank you for your business — {invoice.userId.name} •{' '}
-                            {invoice.userId.email}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-5 md:flex-row  mt-10 relative">
 
-                          <div className="w-full md:w-1/2">
-                            <h2 className="text-3xl mt-5">Payment details</h2>
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2  relative">
+
+                          <div className="">
+                            <h2 className="text-3xl">Payment details</h2>
                             <span className="text-gray-500">Add payment details when you get paid</span>
                             <form onSubmit={(e) => updateInvoiceNotes(e, invoice._id.toString(), invoiceUpdates)} className="py-5 flex flex-col  gap-3">
                               <div className="space-x-4 flex items-center">
                                 <span className="w-15">Amount</span>
-                                <input name="amount" value={invoiceUpdates.amount || ""} onChange={handleInvoiceChange} className="border border-indigo-600 rounded p-2" type="number" placeholder={invoice.currency} />
+                                <input name="amount" value={invoiceUpdates.amount || ""} onChange={handleInvoiceChange} className="bg-green-900 text-white rounded p-2" type="number" placeholder={invoice.currency} />
                               </div>
 
                               <div className="space-x-4 flex items-center">
                                 <span className="w-15">Date</span>
-                                <input name="date" value={invoiceUpdates.date || ""} onChange={handleInvoiceChange} className="border border-indigo-600 rounded p-2" type="date" />
+                                <input name="date" value={invoiceUpdates.date || ""} onChange={handleInvoiceChange} className="border border-gray-300 rounded p-2" type="date" />
                               </div>
                               <div className="space-x-4 flex items-center">
                                 <span className="w-15">Note</span>
-                                <textarea name="note" value={invoiceUpdates.note || ""} onChange={handleInvoiceChange} className="border border-indigo-600 rounded p-2" />
+                                <textarea name="note" value={invoiceUpdates.note || ""} onChange={handleInvoiceChange} className="border flex flex-1 border-gray-300 rounded p-2" />
                               </div>
                               <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors  cursor-pointer" type="submit">Add note</button>
                             </form>
                           </div>
+
                           <div className="hidden md:block absolute top-0 bottom-0 left-1/2 border border-w-0.5 border-gray-200 w-[1px] flex"></div>
-                          <div className="w-full md:w-1/2">
+                          <div className="">
                             <h2 className="text-3xl">Recent Updates</h2>
                             <div className="py-5 text-gray-500">
                               add payment details

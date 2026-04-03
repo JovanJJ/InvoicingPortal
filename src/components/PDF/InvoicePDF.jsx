@@ -103,6 +103,8 @@ const styles = StyleSheet.create({
   col_hours: { width: '15%' },
   col_rate: { width: '15%' },
   col_total: { width: '20%', alignItems: 'flex-end' },
+  col_description_fixed: { width: '80%' },
+  col_hours_fixed: { width: '20%', alignItems: 'flex-end' },
   cellText: {
     fontSize: 11,
     color: '#333',
@@ -190,10 +192,12 @@ export function InvoicePDF({ invoice }) {
     lineItems,   // time entries + expenses
     currency,
     bankAccount,
+    paymentType,
     notes,
   } = invoice
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0)
+  const isFixed = paymentType === 'fixed'
+  const subtotal = isFixed ? (Number(invoice.totalAmount) || lineItems.reduce((sum, item) => sum + item.total, 0)) : lineItems.reduce((sum, item) => sum + item.total, 0)
   const tax = invoice.taxRate ? subtotal * (invoice.taxRate / 100) : 0
   const grandTotal = subtotal + tax
 
@@ -260,10 +264,14 @@ export function InvoicePDF({ invoice }) {
 
         {/* LINE ITEMS TABLE HEADER */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderText, styles.col_description]}>Description</Text>
-          <Text style={[styles.tableHeaderText, styles.col_hours]}>Hours</Text>
-          <Text style={[styles.tableHeaderText, styles.col_rate]}>Rate</Text>
-          <Text style={[styles.tableHeaderText, styles.col_total]}>Total</Text>
+          <Text style={[styles.tableHeaderText, isFixed ? styles.col_description_fixed : styles.col_description]}>Description</Text>
+          <Text style={[styles.tableHeaderText, isFixed ? styles.col_hours_fixed : styles.col_hours]}>{isFixed ? 'Duration' : 'Hours'}</Text>
+          {!isFixed && (
+            <>
+              <Text style={[styles.tableHeaderText, styles.col_rate]}>Rate</Text>
+              <Text style={[styles.tableHeaderText, styles.col_total]}>Total</Text>
+            </>
+          )}
         </View>
 
         {/* LINE ITEMS ROWS */}
@@ -272,7 +280,7 @@ export function InvoicePDF({ invoice }) {
             key={index}
             style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]}
           >
-            <View style={styles.col_description}>
+            <View style={isFixed ? styles.col_description_fixed : styles.col_description}>
               <Text style={styles.cellText}>{item.description}</Text>
               {item.date && (
                 <Text style={{ fontSize: 9, color: '#aaa', marginTop: 2 }}>
@@ -280,15 +288,19 @@ export function InvoicePDF({ invoice }) {
                 </Text>
               )}
             </View>
-            <Text style={[styles.cellText, styles.col_hours]}>
+            <Text style={[styles.cellText, isFixed ? styles.col_hours_fixed : styles.col_hours]}>
               {item.hours ? `${item.hours}` : '-'}
             </Text>
-            <Text style={[styles.cellText, styles.col_rate]}>
-              {item.rate ? `${currency} ${item.rate}` : '-'}
-            </Text>
-            <Text style={[styles.cellText, styles.col_total]}>
-              {currency} {item.total.toFixed(2)}
-            </Text>
+            {!isFixed && (
+              <>
+                <Text style={[styles.cellText, styles.col_rate]}>
+                  {item.rate ? `${currency} ${item.rate}` : '-'}
+                </Text>
+                <Text style={[styles.cellText, styles.col_total]}>
+                  {currency} {item.total.toFixed(2)}
+                </Text>
+              </>
+            )}
           </View>
         ))}
 

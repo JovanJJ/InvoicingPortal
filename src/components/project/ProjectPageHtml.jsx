@@ -3,6 +3,8 @@
 import { useState } from "react";
 import formatDuration from "../formatDuration";
 import CommitsList from "../CommitsList";
+import watchFrame from "../../../public/watch-frame.png";
+import Image from "next/image";
 
 export default function ProjectPageHtml({ status, handleStart, handlePause, commitList, setWasRunning, setIsModalOpen, handleResume, seconds, handleAbort }) {
     const [abortMessage, setAbortMessage] = useState(false);
@@ -12,7 +14,7 @@ export default function ProjectPageHtml({ status, handleStart, handlePause, comm
                 <div className="fixed inset-0 backdrop-blur-[2px] z-40 transition-opacity">
                     <div className="flex items-center justify-center h-full w-full z-50 border border-green-400">
                         <div className="bg-white p-6 rounded-lg shadow-lg z-50 border border-green-400">
-                            
+
                             <p className="z-50">Are you sure you want to abort timer? Your work log wont be saved.</p>
                             <div className="flex justify-end mt-4">
                                 <button
@@ -39,32 +41,11 @@ export default function ProjectPageHtml({ status, handleStart, handlePause, comm
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     <div className="flex flex-col items-center justify-center">
-                        <div className="relative w-48 h-48 mb-6">
-                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-
-                                <circle
-                                    cx="100"
-                                    cy="100"
-                                    r="90"
-                                    fill="#ECFDF5"
-                                    stroke="#E0F2FE"
-                                    strokeWidth="2"
-                                />
-
-                                <circle
-                                    cx="100"
-                                    cy="100"
-                                    r="90"
-                                    fill="none"
-                                    stroke="#10B981"
-                                    strokeWidth="3"
-                                    strokeDasharray={`${2 * Math.PI * 90}`}
-                                    strokeDashoffset={`${2 * Math.PI * 90 * 0.3}`}
-                                />
-                            </svg>
+                        <div className="relative w-80 h-80 ">
+                            <Image src={watchFrame} alt="img" fill />
 
 
-                            <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="absolute inset-0 top-8 flex items-center justify-center">
                                 <div className="text-center">
                                     <div className="text-3xl font-bold text-gray-900">
                                         {formatDuration(seconds)}

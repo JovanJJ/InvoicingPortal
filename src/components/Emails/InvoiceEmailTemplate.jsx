@@ -13,8 +13,10 @@ export default function InvoiceEmailTemplate({
   tax, 
   taxRate,
   total, 
-  bankDetails 
+  bankDetails,
+  paymentType
 }) {
+  const isFixed = paymentType === 'fixed';
   const mainColor = '#4f46e5'; // Indigo-600
   const lightGray = '#f9fafb';
   const borderColor = '#e5e7eb';
@@ -219,9 +221,9 @@ export default function InvoiceEmailTemplate({
           <table style={styles.table}>
             <thead>
               <tr style={styles.tableHeader}>
-                <th style={{ ...styles.tableHeaderCell, width: '60%' }}>Description</th>
-                <th style={{ ...styles.tableHeaderCell, width: '20%' }}>Hours</th>
-                <th style={{ ...styles.tableHeaderCell, width: '20%', textAlign: 'right' }}>Total</th>
+                <th style={{ ...styles.tableHeaderCell, width: isFixed ? '80%' : '60%' }}>Description</th>
+                <th style={{ ...styles.tableHeaderCell, width: isFixed ? '20%' : '20%' }}>{isFixed ? 'Duration' : 'Hours'}</th>
+                {!isFixed && <th style={{ ...styles.tableHeaderCell, width: '20%', textAlign: 'right' }}>Total</th>}
               </tr>
             </thead>
             <tbody>
@@ -229,9 +231,11 @@ export default function InvoiceEmailTemplate({
                 <tr key={index} style={{ backgroundColor: index % 2 === 1 ? '#fdfdfd' : '#ffffff' }}>
                   <td style={styles.tableCell}>{item.description}</td>
                   <td style={styles.tableCell}>{item.hours}</td>
-                  <td style={{ ...styles.tableCell, textAlign: 'right', fontWeight: 'bold' }}>
-                    {invoice.currency} {item.total}
-                  </td>
+                  {!isFixed && (
+                    <td style={{ ...styles.tableCell, textAlign: 'right', fontWeight: 'bold' }}>
+                      {invoice.currency} {item.total}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

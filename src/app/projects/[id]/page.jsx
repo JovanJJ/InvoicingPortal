@@ -1,9 +1,10 @@
 import ProjectHeader from '@/components/ProjectHeader';
 import Stopwatch from '@/components/Stopwatch';
 import HoursChart from '@/components/HoursChart';
-import { fetchProjectById, fetchClient, fetchUser, fetchCurrencies, fetchBankIban, updateTimeEntry } from '@/lib/actions';
+import { fetchProjectById, fetchClient, fetchUser, fetchCurrencies, fetchBankIban, fetchPaymentPercentage, projectProgressPercentage } from '@/lib/actions';
 import getSession from '@/lib/auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { Currency } from 'lucide-react';
 
 
 export default async function project({ params }) {
@@ -15,7 +16,20 @@ export default async function project({ params }) {
   const user = await fetchUser(userId);
   const currencies = await fetchCurrencies();
   const bankIban = await fetchBankIban(user._id.toString(), project.bankAccountId?.toString());
+  const paymentDetails = await fetchPaymentPercentage(id);
+  const { fixedRate, currency, totalPaid, paymentPercentage } = paymentDetails;
 
+  const fixedRateProgressData = {
+    projectName: project.name,
+    clientName: client.clientName,
+    projectStatus: project.status,
+    totalLoggedHours: project.totalLoggedHours,
+    fixedRate: fixedRate,
+    totalPaid: totalPaid,
+    currency: currency,
+    paymentPercentage: paymentPercentage
+  }
+console.log(fixedRateProgressData);
 
   if (!project || !client || !user) {
     return <div>Not found</div>;
@@ -39,7 +53,7 @@ export default async function project({ params }) {
 
       <section className="w-full py-8 px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <Stopwatch projectId={project.projectId} userId={userId} project={project} client={client} userData={userData} bankIban={bankIban} />
+          <Stopwatch projectId={project.projectId} userId={userId} project={project} client={client} userData={userData} bankIban={bankIban} fixedRateProgressData={fixedRateProgressData}/>
         </div>
       </section>
 
