@@ -1,11 +1,9 @@
 import ProjectHeader from '@/components/ProjectHeader';
 import Stopwatch from '@/components/Stopwatch';
 import HoursChart from '@/components/HoursChart';
-import { fetchProjectById, fetchClient, fetchUser, fetchCurrencies, fetchBankIban, fetchPaymentPercentage, projectProgressPercentage } from '@/lib/actions';
+import { fetchProjectById, fetchClient, fetchUser, fetchCurrencies, fetchBankIban, fetchPaymentPercentage, fetchCommitMessages } from '@/lib/actions';
 import getSession from '@/lib/auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { Currency } from 'lucide-react';
-
 
 export default async function project({ params }) {
   const { id } = await params;
@@ -17,6 +15,7 @@ export default async function project({ params }) {
   const currencies = await fetchCurrencies();
   const bankIban = await fetchBankIban(user._id.toString(), project.bankAccountId?.toString());
   const paymentDetails = await fetchPaymentPercentage(id);
+  const commitMessages = await fetchCommitMessages(id);
   const { fixedRate, currency, totalPaid, paymentPercentage } = paymentDetails;
 
   const fixedRateProgressData = {
@@ -29,7 +28,6 @@ export default async function project({ params }) {
     currency: currency,
     paymentPercentage: paymentPercentage
   }
-console.log(fixedRateProgressData);
 
   if (!project || !client || !user) {
     return <div>Not found</div>;
@@ -53,7 +51,7 @@ console.log(fixedRateProgressData);
 
       <section className="w-full py-8 px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <Stopwatch projectId={project.projectId} userId={userId} project={project} client={client} userData={userData} bankIban={bankIban} fixedRateProgressData={fixedRateProgressData}/>
+          <Stopwatch projectId={project.projectId} userId={userId} project={project} client={client} userData={userData} bankIban={bankIban} fixedRateProgressData={fixedRateProgressData} lineItems={commitMessages.list} />
         </div>
       </section>
 

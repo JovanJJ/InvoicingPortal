@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
   ],
 
   // Invoice preferences - auto-fill on every invoice
-  defaultCurrency: { type: String, default: 'EUR' },
+  defaultCurrency: { type: String, default: 'USD' },
   defaultPaymentTerms: { type: Number, default: 30 }, // days until due
   invoicePrefix: { type: String, default: 'INV' }, // INV-001, INV-002
   nextInvoiceNumber: { type: Number, default: 1 }, // auto increment

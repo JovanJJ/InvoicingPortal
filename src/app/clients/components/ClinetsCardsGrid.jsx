@@ -19,7 +19,7 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
             taxIdNumber: item.taxIdNumber || ""
         });
     }
-
+    console.log(updatedClient);
     const handleClientUpdate = (e) => {
         setUpdatedClient({
             ...updatedClient,
@@ -37,7 +37,7 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
     return (
         <div className="grid items-center grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             {projectsAndClients?.map((item) => (
-                <div key={item._id} className="w-full max-w-[400px] mx-auto aspect-square border rounded-2xl border-green-200 bg-blue-50">
+                <div key={item._id} className="w-full max-w-[400px] mx-auto aspect-square border rounded-2xl border-gray-300">
                     <div className="relative mx-auto w-2/3 text-center py-2">
                         <div className=" text-gray-500">Client Name: </div>
                         {isEditing === item._id ? (
@@ -46,13 +46,12 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
                                 name="clientName"
                                 value={updatedClient?.clientName || ""}
                                 onChange={handleClientUpdate}
-                                className="border border-green-200 p-1 rounded text-sm bg-white text-center w-full"
+                                className="border border-gray-300 p-1 rounded text-sm bg-white text-center w-full"
                             />
                         ) : (
                             <div className="">{item.clientName}</div>
                         )}
                         <div className="border-b border-green-200 "></div>
-                        <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="absolute top-1/2 px-2 right-0 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
                     </div>
                     <div className="relative mx-auto w-2/3 text-center py-2">
                         <div className=" text-gray-500">Client Email: </div>
@@ -68,7 +67,6 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
                             <div className="">{item.clientEmail || "No Email"}</div>
                         )}
                         <div className="border-b border-green-200 "></div>
-                        <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="absolute top-1/2 px-2 right-0 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
                     </div>
                     <div className="relative mx-auto w-2/3 text-center py-2">
                         <div className=" text-gray-500">Client Country: </div>
@@ -84,7 +82,6 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
                             <div className="">{item.clientCountry || "N/A"}</div>
                         )}
                         <div className="border-b border-green-200 "></div>
-                        <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="absolute top-1/2 px-2 right-0 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
                     </div>
                     <div className="relative mx-auto w-2/3 text-center py-2">
                         <div className=" text-gray-500">Client Address: </div>
@@ -100,7 +97,6 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
                             <div className="">{item.address || "No Address"}</div>
                         )}
                         <div className="border-b border-green-200 "></div>
-                        <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="absolute top-1/2 px-2 right-0 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
                     </div>
                     <div className="relative mx-auto w-2/3 text-center py-2">
                         <div className=" text-gray-500">Client Tax ID (Type / Number):</div>
@@ -132,20 +128,25 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
                             </div>
                         )}
                         <div className="border-b border-green-200 "></div>
-                        <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="absolute top-1/2 px-2 right-0 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
                     </div>
                     <div className="py-2 px-2 border-t border-green-200">
                         <div className=" text-gray-500">Projects belong to:</div>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                            {item.projects?.length > 0 ? (
-                                item.projects.map((proj) => (
-                                    <div key={proj._id} className="border border-green-200 p-1 rounded text-sm bg-white">
-                                        {proj.name}
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-gray-400 italic text-sm">No projects</div>
-                            )}
+                        <div className="flex">
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {item.projects?.length > 0 ? (
+                                    item.projects.map((proj) => (
+                                        <div key={proj._id} className="border border-green-200 p-1 rounded text-sm bg-white">
+                                            {proj.name}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-gray-400 italic text-sm">No projects</div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 flex items-end justify-end">
+                                <div onClick={isEditing === item._id ? handleSaveClient : () => handleStartEdit(item)} className="px-2 italic text-red-300 hover:text-red-400 active:text-red-400 cursor-pointer">{isEditing === item._id ? "Save" : "Edit"}</div>
+                            </div>
                         </div>
                     </div>
                 </div>

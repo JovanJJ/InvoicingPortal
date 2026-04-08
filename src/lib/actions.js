@@ -16,6 +16,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import calculateInBaseCurrency from "@/components/helper/calculateBaseCurrency";
 import Currency from "./models/Currency";
 import nodemailer from "nodemailer";
+import formatDurationForInvoice from "@/components/FormatDurationForInvoice";
 
 /*
 async function fillCurrencies(currency) {
@@ -23,7 +24,7 @@ async function fillCurrencies(currency) {
 
     const existingCurrency = await Currency.findOne({ name: currency });
     if (existingCurrency) {
-        console.log(`Currency ${currency} already exists`);
+        (`Currency ${currency} already exists`);
         return;
     }
 
@@ -136,6 +137,21 @@ export async function fetchUser(userId) {
     return user;
 }
 
+export async function fetchUserDefaultCurrnecy(userId) {
+    try {
+        await connectDB();
+        const userDefaultCurrency = await User.findById(userId).select("defaultCurrency").lean();
+        if (userDefaultCurrency) {
+            return { success: true, currency: userDefaultCurrency.defaultCurrency }
+        }
+        return
+    } catch (error) {
+        console.error(error);
+        return { success: false, currency: [] }
+    }
+
+}
+
 export async function handleCreateProject(formData) {
     const session = await getSession();
     const userId = session.user?.id;
@@ -147,6 +163,7 @@ export async function handleCreateProject(formData) {
 
 
     if (clientId && project.success) {
+        revalidatePath("/projects");
         return { success: true, message: "Successfully created project!" }
     } else {
         return { success: false, message: "Something went wrong, please try again" }
@@ -159,15 +176,12 @@ export async function fetchProjectList(userId, search) {
     const query = { userId: userId };
 
     if (search) {
-        // Step 1: Find all clients matching the search text
         const matchingClients = await Client.find({
             clientName: { $regex: search, $options: "i" }
         }).select('_id').lean();
 
-        // Extract just the IDs into an array
         const clientIds = matchingClients.map(client => client._id);
 
-        // Step 2: Update the $or query to check project name OR the matched client IDs
         query.$or = [
             { name: { $regex: search, $options: "i" } },
             { status: { $regex: search, $options: "i" } },
@@ -293,6 +307,7 @@ export async function fetchProjectsAndClients(userId) {
 }
 
 export async function updateClient(id, data) {
+    console.log(data);
     try {
         await connectDB();
         const { _id, ...updateData } = data;
@@ -474,17 +489,19 @@ export async function commitMessage(message, timerId) {
         },
         { new: true }
     );
-
+    revalidatePath("/projects", "layout");
 }
 
 export async function fetchCommitMessages(projectId) {
     await connectDB();
-    const projects = await TimeEntry.find({ projectId }).select("status createdAt duration description billable invoiceId").populate("invoiceId");
+    const projects = await TimeEntry.find({ projectId }).select("status createdAt updatedAt duration description billable invoiceId projectId").populate("invoiceId");
 
     const filtered = projects.filter(p => p.status === "completed").map((project) => {
         return {
             _id: project._id.toString(),
+            projectId: project.projectId.toString(),
             createdAt: project.createdAt.toString(),
+            updatedAt: project.updatedAt.toString(),
             duration: project.duration,
             description: project.description,
             billable: project.billable,
@@ -501,7 +518,7 @@ export async function fetchProgressPercentage(projectId) {
     await connectDB();
     const projectsList = await TimeEntry.find({ projectId: projectId }).select("duration").lean();
     const totalDuration = projectsList.reduce((acc, project) => acc + Number(project.duration), 0);
-    const durationInHours = Number(totalDuration) / 3600;
+    const durationInHours = Number(totalDuration) / 60;
 
     return durationInHours;
 }
@@ -519,7 +536,7 @@ export async function projectProgressPercentage(projectId) {
     }
 
     const totalDurationInSeconds = timeEntries.reduce((acc, entry) => acc + (entry.duration || 0), 0);
-    const percentage = (totalDurationInSeconds / 3600) / Number(project.estimatedHours) * 100;
+    const percentage = (totalDurationInSeconds / 60) / Number(project.estimatedHours) * 100;
 
     return percentage.toFixed(2);
 }
@@ -747,7 +764,10 @@ export async function fetchInvoices(userId, searchParams) {
             totalDue,
             clientId: inv.clientId ? {
                 ...inv.clientId,
-                _id: inv.clientId._id.toString()
+                _id: inv.clientId._id.toString(),
+                userId: inv.clientId.userId ? inv.clientId.userId.toString() : null,
+                createdAt: inv.clientId.createdAt ? inv.clientId.createdAt.toISOString() : null,
+                updatedAt: inv.clientId.updatedAt ? inv.clientId.updatedAt.toISOString() : null,
             } : null,
             userId: inv.userId ? {
                 ...inv.userId,
@@ -765,7 +785,8 @@ export async function fetchInvoices(userId, searchParams) {
             commitList: (inv.commitList || []).map(entry => ({
                 ...entry,
                 _id: entry._id?.toString(),
-                createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt
+                createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt,
+                updatedAt: entry.updatedAt instanceof Date ? entry.updatedAt.toISOString() : entry.updatedAt
             })),
             payments: (inv.payments || []).map(payment => ({
                 ...payment,
@@ -796,7 +817,7 @@ export async function calculateTotal(invoiceId, projectId) {
 
     const numberRate = project.rate || 0;
     const totalSeconds = res.reduce((acc, time) => acc + time.duration, 0);
-    const totalhours = totalSeconds / 3600;
+    const totalhours = totalSeconds / 60;
     const total = (totalhours * Number(numberRate)).toFixed(2);
 
     return total;
@@ -876,7 +897,7 @@ export async function updateInvoiceStatus(invoiceId, update) {
 export async function calculateEarnings(userId, currency) {
     await connectDB();
     const baseCurrency = currency || "USD";
-    const rates = await calculateInBaseCurrency();
+    const rates = await calculateInBaseCurrency(baseCurrency);
     const invoices = await Invoice.find({
         userId: userId,
     }).select("currency totalPaid ").populate({ path: "projectId", select: "status" });
@@ -913,9 +934,9 @@ export async function calculateLogedHours(projectId) {
     const timeEntries = await TimeEntry.find({ projectId: projectId }).select("duration");
     let totalLoggedSeconds = 0;
     for (const ent of timeEntries) {
-        totalLoggedSeconds += ent.duration;
+        totalLoggedSeconds += Number(ent.duration) || 0;
     }
-    const totalLoggedHours = (totalLoggedSeconds / 3600).toFixed(2);
+    const totalLoggedHours = Number((totalLoggedSeconds / 60).toFixed(2));
 
     await Project.findByIdAndUpdate({ _id: projectId }, { totalLoggedHours: totalLoggedHours });
 
@@ -935,18 +956,28 @@ export async function calculateProjectValue(projectId) {
     const project = await Project.findById(projectId).select("paymentType totalLoggedHours rate totalValue");
     if (!project) return;
 
+    const loggedHours = Number(project.totalLoggedHours) || 0;
+    const rate = Number(project.rate) || 0;
+
+    let totalValue = 0;
     if (project.paymentType === "hourly") {
-        project.totalValue = project.totalLoggedHours * project.rate
+        totalValue = Number((loggedHours * rate).toFixed(2));
     } else if (project.paymentType === "fixed") {
-        project.totalValue = project.rate
+        totalValue = Number(rate) || 0;
     }
+
+    if (!isFinite(totalValue) || isNaN(totalValue)) {
+        totalValue = 0;
+    }
+
+    project.totalValue = totalValue;
     await project.save();
 }
 
 export async function projectsValueInBaseCurrency(userId, currency) {
     const baseCurrency = currency || "USD";
     await connectDB();
-    const rates = await calculateInBaseCurrency();
+    const rates = await calculateInBaseCurrency(baseCurrency);
 
     const projects = await Project.find({ userId: userId, status: "active" }).select("totalValue currency").lean();
 
@@ -1076,7 +1107,10 @@ export async function fetchBankIban(userId, projectBankId) {
         bankAccount = user.bankAccounts.find(b => b.isDefault);
     }
 
-    return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
+    if (bankAccount) {
+        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
+    }
+
 }
 
 export async function updateTimeEntry(entryId, description, durationMinutes) {
@@ -1087,7 +1121,7 @@ export async function updateTimeEntry(entryId, description, durationMinutes) {
 
         // Only update duration if it's a valid number
         if (!isNaN(parsedDuration)) {
-            updateDoc.duration = Math.round(parsedDuration * 60);
+            updateDoc.duration = Math.round(parsedDuration);
         }
 
         const entry = await TimeEntry.findByIdAndUpdate(entryId, updateDoc, { returnDocument: 'after' });
@@ -1096,7 +1130,7 @@ export async function updateTimeEntry(entryId, description, durationMinutes) {
             await calculateLogedHours(entry.projectId.toString());
         }
 
-        revalidatePath("/projects");
+        revalidatePath("/projects", "layout");
         return { success: true };
     } catch (error) {
         console.error('Error updating time entry:', error);
@@ -1119,20 +1153,22 @@ export async function updateInvoiceDetails(invoiceId, updates) {
                 const parsedDuration = Number(entry.durationMinutes);
 
                 if (entry.durationMinutes !== undefined && !isNaN(parsedDuration)) {
-                    entry.duration = Math.round(parsedDuration * 60);
+                    entry.duration = Math.round(parsedDuration);
                 }
 
                 if (entry._id) {
                     const updateDoc = {};
                     if (entry.description !== undefined) updateDoc.description = entry.description;
                     if (entry.duration !== undefined) updateDoc.duration = entry.duration;
+                    if (entry.displayDate !== undefined) updateDoc.updatedAt = new Date(entry.displayDate);
 
-                    await TimeEntry.findByIdAndUpdate(entry._id, updateDoc, { returnDocument: 'after' });
+                    await TimeEntry.findByIdAndUpdate(entry._id, updateDoc, { returnDocument: 'after', timestamps: false });
                 }
             }
 
             if (projectId) {
                 await calculateLogedHours(projectId.toString());
+                await calculateProjectValue(projectId.toString());
             }
         }
 
@@ -1146,7 +1182,10 @@ export async function updateInvoiceDetails(invoiceId, updates) {
         if (updates.commitList) {
 
             invoiceUpdate.commitList = updates.commitList.map(item => {
-                const { durationMinutes, ...rest } = item;
+                const { durationMinutes, displayDate, ...rest } = item;
+                if (displayDate !== undefined) {
+                    rest.updatedAt = new Date(displayDate);
+                }
                 return rest;
             });
         }
@@ -1173,10 +1212,10 @@ export async function markSentInvoice(invoiceId) {
     return invoice ? { success: true } : { success: false };
 }
 
-export async function deleteInvoice(invoiceId){
-await connectDB();
-const res = await Invoice.findByIdAndDelete(invoiceId);
-revalidatePath("/invoices");
+export async function deleteInvoice(invoiceId) {
+    await connectDB();
+    const res = await Invoice.findByIdAndDelete(invoiceId);
+    revalidatePath("/invoices");
 }
 
 export async function sendInvoiceEmail(invoiceData) {
@@ -1202,11 +1241,11 @@ export async function sendInvoiceEmail(invoiceData) {
     const taxRate = project?.taxRate || 0;
 
     const isFixed = project?.paymentType === 'fixed';
-    const subtotal = isFixed 
+    const subtotal = isFixed
         ? (Number(totalAmount) || 0)
         : (commitList || []).reduce((acc, item) => {
             const seconds = Number(isFinite(item.duration) ? item.duration : 0);
-            const total = (seconds / 3600) * rate;
+            const total = (seconds / 60) * rate;
             return acc + total;
         }, 0);
 
@@ -1221,11 +1260,11 @@ export async function sendInvoiceEmail(invoiceData) {
                 <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${formatDateLocal(item.createdAt)}</div>
             </td>
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
-                ${((item.duration || 0) / 3600).toFixed(2)} hrs
+                ${formatDurationForInvoice(item.duration * 60)}
             </td>
             ${!isFixed ? `
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #1f2937;">
-                ${currency} ${(((item.duration || 0) / 3600) * rate).toFixed(2)}
+                ${currency} ${(((item.duration || 0) / 60) * rate).toFixed(2)}
             </td>
             ` : ''}
         </tr>
@@ -1401,4 +1440,111 @@ export async function sendInvoiceEmail(invoiceData) {
         console.error("Error sending email:", error);
         return { success: false, message: "Failed to send email." };
     }
+}
+
+export async function deleteTimeEntry(entryId) {
+    await connectDB();
+    const entry = await TimeEntry.findByIdAndDelete(entryId);
+    revalidatePath("/projects", "layout");
+    revalidatePath("/invoices", "layout");
+}
+
+export async function deleteProject(projectId) {
+    try {
+        await connectDB();
+        const res = await Project.findByIdAndDelete(projectId);
+        revalidatePath("/projects");
+        return { success: true, message: "Project deleted" }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+export async function updateEntry(updates) {
+    try {
+        await connectDB();
+        const id = updates._id;
+        const updatesObj = {
+            duration: updates.duration,
+            updatedAt: new Date(updates.updatedAt || updates.createdAt),
+            description: updates.description
+        }
+        const res = await TimeEntry.findByIdAndUpdate(id, updatesObj, { new: true, timestamps: false }).lean();
+        if (res) {
+            calculateProjectValue
+            revalidatePath("/projects", "layout");
+            return { success: true, message: "Successfully updated session" }
+        }
+        if (!res) {
+            throw new Error("Something went wrong")
+        }
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: "Something went wrong, please try again" }
+    }
+}
+
+export async function fetchProjects() {
+    try {
+        await connectDB();
+        const projects = await Project.find({}).select("_id name").lean();
+        if (projects.length > 0) {
+            return { success: true, projects: JSON.parse(JSON.stringify(projects)) }
+        } else {
+            throw new Error("Could not find projects")
+        }
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: "Something went wrong" }
+    }
+}
+
+export async function projectDashStats(projectId, currency) {
+    if (!projectId) return null;
+    try {
+        const rates = await calculateInBaseCurrency(currency);
+        const project = await Project.findById(projectId).select("totalValue currency").lean();
+
+        if (!project) return null;
+
+        let projectValue = project.totalValue || 0;
+        const projectCurrency = project.currency || "USD";
+
+        if (projectCurrency !== rates.base_code) {
+            projectValue = (Number(projectValue) / Number(rates.conversion_rates[projectCurrency])) * Number(rates.conversion_rates[currency]);
+        }
+
+        let totalPaid = 0;
+        let moneyToCharge = 0;
+
+        const invoices = await Invoice.find({ projectId: project._id }).select("totalPaid currency").lean();
+
+
+        if (invoices.length > 0) {
+            totalPaid = invoices[0]?.totalPaid || 0;
+
+            const invoiceCurrency = invoices[0].currency || "USD";
+
+            if (invoiceCurrency !== rates.base_code) {
+                totalPaid = (Number(totalPaid) / Number(rates.conversion_rates[invoices[0].currency])) * Number(rates.conversion_rates[currency]);
+            }
+        }
+
+
+        moneyToCharge = Number(projectValue) - Number(totalPaid);
+
+        // Return rounded numbers for visual display
+        return {
+            success: true,
+            dashStats: {
+                projectValue: projectValue.toFixed(2),
+                totalPaid: totalPaid.toFixed(2),
+                moneyToCharge: moneyToCharge > 0 ? (moneyToCharge).toFixed(2) : `${(moneyToCharge).toFixed(2)}(overpaid)`
+            }
+        };
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: "server error" }
+    }
+
 }

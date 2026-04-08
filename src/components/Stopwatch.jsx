@@ -11,7 +11,7 @@ import InvoicePreviewButton from './InvoicePreviewButton';
 import FixedRateProgressBar from './FixedRateProgressBar';
 
 
-export default function Stopwatch({ projectId, userId, project, client, userData, bankIban, fixedRateProgressData }) {
+export default function Stopwatch({ projectId, userId, project, client, userData, bankIban, fixedRateProgressData, lineItems }) {
   const [timerId, setTimerId] = useState(null);
   const [status, setStatus] = useState("noWatch");
   const [seconds, setSeconds] = useState(0);
@@ -24,7 +24,6 @@ export default function Stopwatch({ projectId, userId, project, client, userData
   const [wasRunning, setWasRunning] = useState(false);
   const [openDescription, setOpenDescription] = useState(false);
   const [message, setMessage] = useState("");
-  const [commitList, setCommitList] = useState([]);
   const [invoicePreview, setInvoicePreview] = useState(false);
 
 
@@ -68,14 +67,7 @@ export default function Stopwatch({ projectId, userId, project, client, userData
   }, [projectId])
 
 
-  const getCommitMessages = async () => {
-    const { list, success } = await fetchCommitMessages(projectId);
-    if (success) setCommitList(list);
-  };
 
-  useEffect(() => {
-    getCommitMessages();
-  }, [projectId]);
 
 
   useEffect(() => {
@@ -149,18 +141,18 @@ export default function Stopwatch({ projectId, userId, project, client, userData
   return (
     <>
       {openDescription &&
-        <OpenDescription handleStop={handleStop} setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} setMessage={setMessage} message={message} timerId={timerId} wasRunning={wasRunning} getCommitMessages={getCommitMessages} />
+        <OpenDescription handleStop={handleStop} setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} setMessage={setMessage} message={message} timerId={timerId} wasRunning={wasRunning} />
       }
       {isModalOpen &&
         <IsModalOpen setOpenDescription={setOpenDescription} setIsModalOpen={setIsModalOpen} handleResume={handleResume} wasRunning={wasRunning} />
       }
-      <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={commitList} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} />
+      <ProjectPageHtml status={status} handleStart={handleStart} handlePause={handlePause} commitList={lineItems} setWasRunning={setWasRunning} setIsModalOpen={setIsModalOpen} handleResume={handleResume} seconds={seconds} handleAbort={handleAbort} lineItems={lineItems} />
 
       {project.paymentType === "hourly" && <ProgressBar estimatedHours={project.estimatedHours} seconds={seconds} projectId={projectId} />}
       {project.paymentType === "fixed" && <FixedRateProgressBar fixedRateProgressData={fixedRateProgressData} />}
 
       <InvoicePreviewButton handleInvoicePreview={handleInvoicePreview} />
-      {invoicePreview && <InvoicePreview handleInvoicePreview={handleInvoicePreview} project={project} client={client} timeEntries={commitList} user={userData} getCommitMessages={getCommitMessages} bankIban={bankIban} />}
+      {invoicePreview && <InvoicePreview handleInvoicePreview={handleInvoicePreview} project={project} client={client} timeEntries={lineItems} user={userData} bankIban={bankIban} />}
     </>
   );
 }

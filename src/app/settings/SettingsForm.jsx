@@ -6,15 +6,13 @@ import ProfileUpload from '@/components/ProfileUpload';
 import { updateUserSettings, addBankAccount, deleteBankAccount, pickDefaultBankAccount } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 
-export default function SettingsForm({ user }) {
+export default function SettingsForm({ user, currencies }) {
     const router = useRouter();
     const [formData, setFormData] = useState({
         defaultCurrency: user?.defaultCurrency || "",
         notification: user?.notifications,
         address: user?.address || "",
     });
-
-
 
     const [bankData, setBankData] = useState({
         bankName: "",
@@ -35,7 +33,6 @@ export default function SettingsForm({ user }) {
         taxIdType: user?.taxIdType || "",
         taxIdNumber: user?.taxIdNumber || "",
     });
-
 
     const handlePickDefault = async (userId, bankId) => {
         setLoading(true);
@@ -240,9 +237,9 @@ export default function SettingsForm({ user }) {
                                 className='border border-gray-300 p-2 rounded w-full'
                             >
                                 <option value="">Select currency</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="CHF">CHF</option>
+                                {currencies.map((currency) => (
+                                    <option key={currency.id} value={currency.name}>{currency.name}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -281,9 +278,9 @@ export default function SettingsForm({ user }) {
                     onChange={handleSettingsChange}
                     className='border border-gray-300 p-2 rounded max-w-[100px]'
                 >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="CHF">CHF</option>
+                    {currencies.map((currency) => (
+                        <option key={currency.id} value={currency.name}>{currency.name}</option>
+                    ))}
                 </select>
                 <button
                     onClick={handleSaveSettings}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "./helper/formatDate";
 import formatDurationForInvoice from "./FormatDurationForInvoice";
-import { invoiceNotes, deletePaymentUpdate, updateInvoiceDetails, deleteInvoice } from "@/lib/actions";
+import { invoiceNotes, deletePaymentUpdate, updateInvoiceDetails, deleteInvoice, deleteTimeEntry } from "@/lib/actions";
 import InvoicesFilter from "./InvoicesFilter";
 import PdfButton from "./PDF/PdfButton";
 import Image from "next/image";
@@ -44,7 +44,8 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
     setEditingInvoiceId(invoice._id);
     const formCommitList = (invoice.commitList || []).map(item => ({
       ...item,
-      durationMinutes: item.duration ? Math.floor(item.duration / 60) : 0
+      durationMinutes: item.duration,
+      displayDate: (item.updatedAt || item.createdAt) ? new Date(item.updatedAt || item.createdAt).toISOString().substring(0, 10) : ""
     }));
 
     setEditFormData({
@@ -126,8 +127,8 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
           const computedSubtotal = isFixed
             ? (Number(invoice.totalAmount) || 0)
             : currentCommitList.reduce((acc, item) => {
-              const seconds = isEditing ? (Number(item.durationMinutes) * 60) : Number(item.duration);
-              const total = (seconds / 3600) * rate;
+              const seconds = isEditing ? (Number(item.durationMinutes) * 60) : Number(item.duration / 60);
+              const total = (seconds) * rate;
               return acc + total;
             }, 0);
 
@@ -192,7 +193,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                         </p>
                         <p className="font-bold text-gray-900 mb-1">{invoice.clientId.clientName}</p>
                         <p className="text-sm text-gray-600 mb-0.5">{invoice.clientId.clientEmail}</p>
-                        <p className="text-sm text-gray-600">{invoice.clientId.clientCountry}</p>
+                        <p className="text-sm text-gray-600">{invoice.clientId.address || ""}</p>
                         {invoice.userId.taxIdType && (
                           <p className="text-sm text-gray-600">Tax ID: {invoice.clientId.taxIdType} {invoice.clientId.taxIdNumber}</p>
                         )}
@@ -364,8 +365,8 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                             </div>
                           </div>
 
-
                           {(editingInvoiceId === invoice._id ? editFormData.commitList : invoice.commitList).map((item, index) => (
+
                             <div
                               key={index}
                               className={`border-b border-gray-200 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
@@ -383,15 +384,27 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                           className="w-full text-sm text-gray-900 font-medium bg-white border border-gray-300 rounded p-1 mb-1 outline-none focus:border-indigo-500"
                                           rows={2}
                                         />
-                                        {item.createdAt && (
-                                          <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
-                                        )}
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <input
+                                            type="date"
+                                            value={item.displayDate || ''}
+                                            onChange={(e) => handleCommitChange(index, 'displayDate', e.target.value)}
+                                            className="text-xs text-gray-900 bg-white border border-gray-300 rounded p-1 outline-none focus:border-indigo-500"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => deleteTimeEntry(item._id.toString())}
+                                            className="text-xs text-red-500 px-2 py-1 border border-red-200 rounded hover:bg-red-50"
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
                                       </>
                                     ) : (
                                       <>
                                         <p className="text-sm text-gray-900 font-medium">{item.description || 'N/A'}</p>
-                                        {item.createdAt && (
-                                          <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                        {(item.updatedAt || item.createdAt) && (
+                                          <p className="text-xs text-gray-400 mt-1">{formatDate(item.updatedAt || item.createdAt)}</p>
                                         )}
                                       </>
                                     )}
@@ -414,7 +427,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                           <span className="text-xs text-gray-400 mt-1">minutes</span>
                                         </div>
                                       ) : (
-                                        <span>{formatDurationForInvoice(item.duration)}</span>
+                                        <span>{formatDurationForInvoice(Number(item.duration) * 60)}</span>
                                       )}
                                     </div>
                                   </div>
@@ -431,7 +444,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                         <div className="text-sm text-gray-700 font-medium">
                                           {isEditing && invoice.projectId.paymentType === "hourly"
                                             ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
-                                            : ((item.duration / 3600) * (invoice.projectId?.rate || 0)).toFixed(2)}
+                                            : ((item.duration / 60) * (invoice.projectId?.rate || 0)).toFixed(2)}
                                         </div>
                                       </div>
                                     </>
@@ -439,7 +452,6 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                 </div>
                               </div>
 
-                              {/* Desktop layout */}
                               <div className="hidden sm:grid sm:grid-cols-12 gap-4 p-4">
                                 <div className="sm:col-span-6">
                                   {editingInvoiceId === invoice._id ? (
@@ -450,15 +462,27 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                         className="w-full text-sm text-gray-900 font-medium bg-white border border-gray-300 rounded p-1 mb-1 outline-none focus:border-indigo-500"
                                         rows={2}
                                       />
-                                      {item.createdAt && (
-                                        <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
-                                      )}
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <input
+                                          type="date"
+                                          value={item.displayDate || ''}
+                                          onChange={(e) => handleCommitChange(index, 'displayDate', e.target.value)}
+                                          className="text-xs text-gray-900 bg-white border border-gray-300 rounded p-1 outline-none focus:border-indigo-500"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => deleteTimeEntry(item._id.toString())}
+                                          className="text-xs text-red-500 px-2 py-1 border border-red-200 rounded hover:bg-red-50"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
                                     </>
                                   ) : (
                                     <>
                                       <p className="text-sm text-gray-900 font-medium">{item.description || 'N/A'}</p>
-                                      {item.createdAt && (
-                                        <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                                      {(item.updatedAt || item.createdAt) && (
+                                        <p className="text-xs text-gray-400 mt-1">{formatDate(item.updatedAt || item.createdAt)}</p>
                                       )}
                                     </>
                                   )}
@@ -476,7 +500,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                       <span className="text-xs text-gray-400 mt-1">minutes</span>
                                     </div>
                                   ) : (
-                                    <p className="text-sm text-gray-700">{formatDurationForInvoice(item.duration)}</p>
+                                    <p className="text-sm text-gray-700">{formatDurationForInvoice(Number(item.duration * 60))}</p>
                                   )}
                                 </div>
                                 {!isFixed && (
@@ -488,7 +512,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                       <p className="text-sm text-gray-700 font-medium">
                                         {isEditing
                                           ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
-                                          : ((item.duration / 3600) * (invoice.projectId?.rate || 0)).toFixed(2)
+                                          : ((item.duration / 60) * (invoice.projectId?.rate || 0)).toFixed(2)
                                         }
                                       </p>
                                     </div>

@@ -20,7 +20,6 @@ const invoiceSchema = new mongoose.Schema({
     default: false
   },
 
-
   payments: [
     {
       amount: { type: Number },

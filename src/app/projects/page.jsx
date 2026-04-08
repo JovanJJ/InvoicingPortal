@@ -1,4 +1,3 @@
-import Image from "next/image";
 import DashboardStats from "@/components/DashboardStats";
 
 export default function Home({ searchParams }) {

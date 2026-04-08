@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { handleCreateProject } from '@/lib/actions';
+import Image from 'next/image';
 
 export default function NewProjectCard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +22,11 @@ export default function NewProjectCard() {
         const result = await handleCreateProject(formData);
         setMessage(result.message);
         setSuccess(result.success);
+        setTimeout(() => {
+            setMessage("");
+            setSuccess("");
+            setIsModalOpen(false);
+        }, 4000)
     }
 
     return (
@@ -31,9 +37,7 @@ export default function NewProjectCard() {
             >
                 <div className="flex flex-col items-center justify-center">
                     <div className="bg-green-100 p-6 rounded-lg mb-4 group-hover:bg-green-200 transition-colors">
-                        <svg className="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
+                        <Image src="/add-project.svg" alt="money" width={70} height={70} />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">New Project</h3>
                 </div>
@@ -156,7 +160,7 @@ export default function NewProjectCard() {
                                 Close
                             </button>
                         </div>
-                        <p className={`${success ? "text text-green-500": "text-red-400"} mt-5 w-fit mx-auto`}>{message}</p>
+                        <p className={`${success ? "text text-green-500" : "text-red-400"} mt-5 w-fit mx-auto`}>{message}</p>
                     </form>
                 </div>
             )}

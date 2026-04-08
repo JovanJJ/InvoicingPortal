@@ -6,7 +6,7 @@ import CommitsList from "../CommitsList";
 import watchFrame from "../../../public/watch-frame.png";
 import Image from "next/image";
 
-export default function ProjectPageHtml({ status, handleStart, handlePause, commitList, setWasRunning, setIsModalOpen, handleResume, seconds, handleAbort }) {
+export default function ProjectPageHtml({ status, handleStart, handlePause, setWasRunning, setIsModalOpen, handleResume, seconds, handleAbort, lineItems }) {
     const [abortMessage, setAbortMessage] = useState(false);
     return (
         <>
@@ -96,7 +96,7 @@ export default function ProjectPageHtml({ status, handleStart, handlePause, comm
                         </div>
                     </div>
 
-                    <CommitsList commitList={commitList} />
+                    <CommitsList lineItems={lineItems} />
                 </div>
             </div>
         </>

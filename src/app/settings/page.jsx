@@ -1,12 +1,13 @@
 import SettingsForm from "./SettingsForm";
 import getSession from "@/lib/auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
-import { fetchUser } from "@/lib/actions";
+import { fetchUser, fetchCurrencies } from "@/lib/actions";
 
 export default async function SettingPage() {
     const session = await getSession(authOptions);
     const id = session.user.id;
     const userData = await fetchUser(id);
+    const currencies = await fetchCurrencies();
 
     if (!userData) {
         return (
@@ -34,11 +35,12 @@ export default async function SettingPage() {
         address: userData.address || "",
         taxIdType: userData.taxIdType || "",
         taxIdNumber: userData.taxIdNumber || "",
+        defaultCurrency: userData.defaultCurrency || "USD"
     };
 
     return (
         <div className="container mx-auto px-4 py-12">
-            <SettingsForm user={user} />
+            <SettingsForm user={user} currencies={currencies} />
         </div>
     );
 }

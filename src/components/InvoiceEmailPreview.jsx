@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { sendInvoiceEmail, markSentInvoice } from '@/lib/actions';
+import formatDurationForInvoice from './FormatDurationForInvoice';
 
 export default function InvoiceEmailPreview({ invoice, onClose }) {
     const [loading, setLoading] = useState(false);
@@ -17,7 +18,6 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
     const dueDate = invoice.dueDate;
     const currency = invoice.currency || '';
     const notes = invoice.notes;
-
     const formatDateLocal = (date) => {
         if (!date) return 'N/A';
         return new Date(date).toLocaleDateString('en-GB');
@@ -27,11 +27,11 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
     const taxRate = project?.taxRate || 0;
 
     const isFixed = project?.paymentType === 'fixed';
-    const subtotal = isFixed 
+    const subtotal = isFixed
         ? (Number(invoice.totalAmount) || 0)
         : (commitList || []).reduce((acc, item) => {
             const seconds = Number(Number.isFinite(item?.duration) ? item.duration : 0);
-            const total = (seconds / 3600) * rate;
+            const total = (seconds / 60) * rate;
             return acc + total;
         }, 0);
 
@@ -44,9 +44,6 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
         await markSentInvoice(invoice._id.toString());
         setLoading(false);
         setResponseMessage(res.message);
-        console.log(res.message);
-
-
     }
     return (
         <div
@@ -154,11 +151,11 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                                             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>{formatDateLocal(item.createdAt)}</div>
                                         </td>
                                         <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
-                                            {(((item.duration || 0) / 3600).toFixed(2))} hrs
+                                            {formatDurationForInvoice(item.duration * 60)}
                                         </td>
                                         {!isFixed && (
                                             <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: 'bold', color: '#1f2937' }}>
-                                                {currency} {(((item.duration || 0) / 3600) * rate).toFixed(2)}
+                                                {currency} {(((item.duration || 0) / 60) * rate).toFixed(2)}
                                             </td>
                                         )}
                                     </tr>
@@ -223,7 +220,7 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, padding: '10px 0 10px 0' }}>
                         <button
-                        disabled={responseMessage === "Email sent successfully!"}
+                            disabled={responseMessage === "Email sent successfully!"}
                             onClick={(e) => { e.stopPropagation(); handleSend(); }}
                             style={{
                                 backgroundColor: responseMessage === "Email sent successfully!" ? "gray" : '#10b981',
@@ -237,7 +234,7 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                         >
                             Send
                         </button>
-                        
+
                         <button
                             onClick={(e) => { e.stopPropagation(); setResponseMessage(""); onClose && onClose(); }}
                             style={{

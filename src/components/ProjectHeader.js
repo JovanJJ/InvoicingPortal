@@ -50,7 +50,7 @@ export default function ProjectHeader({ project, client, bankAccounts, currencie
       estimatedHours: formData.estimatedHours,
       status: formData.status,
       taxRate: Number(formData.taxRate),
-      bankAccountId: selectedAccount,
+      bankAccountId: selectedAccount === "" ? null : selectedAccount,
       clientAddress: formData.clientAddress,
     };
     if (formData.startDate) {
