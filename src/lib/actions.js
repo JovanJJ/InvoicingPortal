@@ -49,7 +49,8 @@ function splitEntryAcrossDays(entry, timezone) {
     const stopDate = stop.toLocaleDateString('en-CA', { timeZone: timezone })
 
     if (startDate === stopDate) {
-        result[startDate] = entry.duration
+        const secondsThisDay = Math.floor((stop - start) / 1000)
+        result[startDate] = secondsThisDay
         return result
     }
 
@@ -307,7 +308,6 @@ export async function fetchProjectsAndClients(userId) {
 }
 
 export async function updateClient(id, data) {
-    console.log(data);
     try {
         await connectDB();
         const { _id, ...updateData } = data;
@@ -430,13 +430,14 @@ export async function stopTimer(timerId) {
         ? Math.floor((now - timer.timerStartedAt) / 1000)
         : 0
 
-    const totalDuration = timer.accumulatedSeconds + sessionSeconds
+    const totalDurationSeconds = timer.accumulatedSeconds + sessionSeconds
+    const totalDurationMinutes = Math.round(totalDurationSeconds / 60)
 
     const completed = await TimeEntry.findByIdAndUpdate(
         timerId,
         {
             timerStoppedAt: now,
-            duration: totalDuration,
+            duration: totalDurationMinutes,
             status: 'completed'
         },
         { returnDocument: 'after' }
@@ -1257,7 +1258,7 @@ export async function sendInvoiceEmail(invoiceData) {
         <tr style="background-color: ${index % 2 === 1 ? '#f9fafb' : '#ffffff'};">
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
                 <div style="font-weight: bold; color: #1f2937;">${item.description || 'Development Work'}</div>
-                <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${formatDateLocal(item.createdAt)}</div>
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${formatDateLocal(item.updatedAt || createdAt)}</div>
             </td>
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
                 ${formatDurationForInvoice(item.duration * 60)}

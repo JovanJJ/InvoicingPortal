@@ -1,6 +1,7 @@
 "use client"
 
 import formatDuration from "./formatDuration";
+import formatDurationForInvoice from "./FormatDurationForInvoice";
 import { useState, useEffect } from "react";
 import { updateEntry, deleteTimeEntry, calculateProjectValue, calculateLogedHours } from "@/lib/actions";
 
@@ -91,7 +92,7 @@ export default function CommitsList({ lineItems }) {
                   </div>
                   :
                   <p className="text-sm font-semibold text-gray-900">
-                    {formatDuration(commit.duration)}
+                    {formatDurationForInvoice(commit.duration * 60)}
                   </p>
                 }
                 <div className="flex gap-3">

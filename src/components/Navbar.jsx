@@ -2,23 +2,29 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Bell, Settings, Menu, X } from 'lucide-react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 export default function Navbar() {
+  const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-
+  console.log(status);
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+
 
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/projects', label: 'Projects' },
     { href: '/invoices', label: 'Invoices' },
+    { href: '/clients', label: 'Clients' },
     { href: '/contact', label: 'Contact' },
     { href: '/about', label: 'About' },
   ];
+
+
+
 
   return (
     <nav className="bg-white border-b border-green-200 sticky top-0 z-50">
@@ -45,7 +51,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Icons */}
-          <div className="hidden md:flex items-center space-x-4">   
+          <div className="hidden md:flex items-center space-x-4">
             <Link href="/settings" className="p-2 text-gray-700 hover:text-green-600 transition-colors">
               <Image src="/settings.svg" alt="img" width={25} height={25} />
             </Link>
@@ -75,7 +81,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/settings">Settings</Link>           
+            <Link href="/settings">Settings</Link>
           </div>
         )}
       </div>

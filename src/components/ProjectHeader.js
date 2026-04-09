@@ -81,9 +81,9 @@ export default function ProjectHeader({ project, client, bankAccounts, currencie
 
   return (
     <div className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-8 py-4">
+      <div className="max-w-7xl mx-auto pb-5">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 border border-gray-200 p-5 rounded-xl">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Project Name</label>
             {isEditing ? (

@@ -40,9 +40,9 @@ export default function PdfButton({ project, client, timeEntries, user, getCommi
         lineItems: (existingInvoice.commitList || []).map(entry => ({
           description: entry.description || 'Development work',
           date: formatDate(entry.createdAt),
-          hours: formatDurationForInvoice(entry.duration),
+          hours: formatDurationForInvoice(entry.duration * 60),
           rate: project?.rate || 0,
-          total: (entry.duration / 3600) * (project?.rate || 0)
+          total: ((entry.duration / 60) * (project?.rate || 0))
         })).reverse(),
         bankAccount,
         taxRate: project?.taxRate || 0,
@@ -87,9 +87,9 @@ export default function PdfButton({ project, client, timeEntries, user, getCommi
         lineItems: unbilledEntries.map(entry => ({
           description: entry.description || 'Development work',
           date: formatDate(entry.createdAt),
-          hours: formatDurationForInvoice(entry.duration),
+          hours: formatDurationForInvoice(entry.duration * 60),
           rate: project.rate,
-          total: (entry.duration / 3600) * project.rate
+          total: ((entry.duration / 60) * project.rate)
         })).reverse(),
         bankAccount,
         taxRate: project.taxRate,

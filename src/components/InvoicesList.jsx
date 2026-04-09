@@ -127,8 +127,8 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
           const computedSubtotal = isFixed
             ? (Number(invoice.totalAmount) || 0)
             : currentCommitList.reduce((acc, item) => {
-              const seconds = isEditing ? (Number(item.durationMinutes) * 60) : Number(item.duration / 60);
-              const total = (seconds) * rate;
+              const minutes = isEditing ? Number(item.durationMinutes) : Number(item.duration);
+              const total = (minutes / 60) * rate;
               return acc + total;
             }, 0);
 
@@ -207,13 +207,13 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                         {editingInvoiceId === invoice._id ? (
                           <input
                             type="date"
-                            name="createdAt"
-                            value={editFormData.createdAt}
+                            name="issueDate"
+                            value={editFormData.issueDate}
                             onChange={handleEditFormChange}
                             className="text-center font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1"
                           />
                         ) : (
-                          <p className="font-bold text-gray-900">{formatDate(invoice.createdAt)}</p>
+                          <p className="font-bold text-gray-900">{formatDate(invoice.issueDate || invoice.createdAt)}</p>
                         )}
                       </div>
                       <div className="text-center">
@@ -443,7 +443,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                         <div className="text-xs text-gray-500">Total</div>
                                         <div className="text-sm text-gray-700 font-medium">
                                           {isEditing && invoice.projectId.paymentType === "hourly"
-                                            ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
+                                            ? ((item.durationMinutes / 60) * (invoice.projectId?.rate || 0)).toFixed(2)
                                             : ((item.duration / 60) * (invoice.projectId?.rate || 0)).toFixed(2)}
                                         </div>
                                       </div>
@@ -511,7 +511,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                     <div className="sm:col-span-2 sm:text-right">
                                       <p className="text-sm text-gray-700 font-medium">
                                         {isEditing
-                                          ? ((item.durationMinutes * 60) / 3600 * (invoice.projectId?.rate || 0)).toFixed(2)
+                                          ? ((item.durationMinutes / 60) * (invoice.projectId?.rate || 0)).toFixed(2)
                                           : ((item.duration / 60) * (invoice.projectId?.rate || 0)).toFixed(2)
                                         }
                                       </p>

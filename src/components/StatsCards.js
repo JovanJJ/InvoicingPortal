@@ -51,7 +51,7 @@ export default function StatsCards({ activeProjects, earnings, projectsValue, to
           </div>
           <div className="flex justify-between items-center py-2 border-t border-gray-100">
             <span className="text-gray-600">Hours Spent</span>
-            <span className="font-semibold text-gray-900">{totalLoggedHours}h</span>
+            <span className="font-semibold text-gray-900">{(totalLoggedHours).toFixed(2)}h</span>
           </div>
         </div>
       </div>

@@ -9,18 +9,18 @@ export default function Home() {
 
   useEffect(() => {
     const observerOptions = {
-      root: null, 
-      threshold: 0 
+      root: null,
+      threshold: 0
     };
 
     const observer = new IntersectionObserver((entries, observer) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          
+
           entry.target.classList.remove('opacity-0');
           entry.target.classList.add('opacity-100');
 
-          
+
           if (entry.target.classList.contains('reveal-from-left')) {
             entry.target.classList.remove('-translate-x-full');
             entry.target.classList.add('translate-x-0');
@@ -31,7 +31,7 @@ export default function Home() {
             entry.target.classList.add('translate-x-0');
           }
 
-          
+
           if (entry.target.classList.contains('reveal-on-scroll')) {
             entry.target.classList.remove('translate-y-10');
             entry.target.classList.add('translate-y-0');
@@ -100,7 +100,7 @@ export default function Home() {
         </div>
 
 
-        <div className="mt-10 border border-gray-300 shadow-xl rounded-tr-4xl rounded-tl-4xl bg-gradient-to-r from-blue-100 to-purple-200"> 
+        <div className="mt-10 border border-gray-300 shadow-xl rounded-tr-4xl rounded-tl-4xl bg-gradient-to-r from-blue-100 to-purple-200">
           <div className="rounded-tl-4xl rounded-tr-4xl">
             <p className="text-center p-3 md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
               Review and update every detail before sending your invoice. Edit any field to ensure accuracy, and track payments easily with a dedicated section for each invoice where you can record received amounts.

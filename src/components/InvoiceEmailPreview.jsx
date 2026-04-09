@@ -148,7 +148,7 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                                     <tr key={index} style={{ backgroundColor: index % 2 === 1 ? '#f9fafb' : '#ffffff' }}>
                                         <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb' }}>
                                             <div style={{ fontWeight: 'bold', color: '#1f2937' }}>{item.description || 'Development Work'}</div>
-                                            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>{formatDateLocal(item.createdAt)}</div>
+                                            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>{formatDateLocal(item.updatedAt || item.createdAt)}</div>
                                         </td>
                                         <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
                                             {formatDurationForInvoice(item.duration * 60)}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { formatDate } from './helper/formatDate';
 import formatDurationForInvoice from './FormatDurationForInvoice';
 import { saveInvoice, splitTimeEntryByInvoice, updateTimeEntry, deleteTimeEntry } from '@/lib/actions';
@@ -15,7 +16,13 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const [edditing, setEdditing] = useState(null);
     const [note, setNote] = useState("");
     const [deleteEntry, setDeleteEntry] = useState(false);
-    const unbilledEntries = timeEntries.filter(e => e.invoiceId === null || e.invoiceId === undefined);
+    const [localUnbilled, setLocalUnbilled] = useState(() => (timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
+
+    useEffect(() => {
+        setLocalUnbilled((timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
+    }, [timeEntries]);
+
+    const unbilledEntries = localUnbilled;
     const lineItems = unbilledEntries.map(e => {
         const isEditing = edditing === e._id;
         const activeDuration = isEditing && updateSessionDuration !== "" ? Number(updateSessionDuration) : e.duration;
@@ -46,6 +53,11 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
     const entryUpdate = async (entryId, description, duration) => {
         const res = await updateTimeEntry(entryId, description, duration);
+        if (res && res.success) {
+            const parsed = Number(duration);
+            const rounded = Number.isFinite(parsed) ? Math.round(parsed) : undefined;
+            setLocalUnbilled(prev => prev.map(ent => ent._id === entryId ? { ...ent, description: description !== undefined ? description : ent.description, duration: rounded !== undefined ? rounded : ent.duration, updatedAt: new Date().toISOString() } : ent));
+        }
     }
 
     const handleDeleteEntry = async (entryId) => {
@@ -166,7 +178,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                     </div>
 
 
-                                    {lineItems.map((item, index) => (
+                                    {lineItems.reverse().map((item, index) => (
                                         <div
                                             key={index}
                                             className={`flex w-full items-center gap-4 p-4 border-b border-gray-200 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
@@ -210,7 +222,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                                             await entryUpdate(item.id, updateDescription, updateSessionDuration);
                                                             setEdditing(null);
                                                         } else {
-                                                            const originalEntry = unbilledEntries[index];
+                                                            const originalEntry = unbilledEntries.find(ent => ent._id === item.id) || unbilledEntries[index];
                                                             setUpdateDescription(item.description);
                                                             setUpdateSessionDuration(Math.floor(originalEntry.duration).toString());
                                                             setEdditing(item.id);
