@@ -5,20 +5,20 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  avatar: { type: String }, // Google profile picture URL
+  avatar: { type: String },
 
-  // Freelancer business info - user fills this after first login
-  businessName: { type: String }, // if different from name
+
+  businessName: { type: String },
   address: { type: String },
   country: { type: String },
   phone: { type: String },
   taxIdType: { type: String },
   taxIdNumber: { type: String },
 
-  // Payment & billing preferences
+
   bankAccounts: [
     {
-      label: { type: String }, // "EUR Account" or "RSD Account"
+      label: { type: String },
       accountOwnerFirstName: { type: String },
       accountOwnerLastName: { type: String },
       bankName: { type: String },
@@ -28,20 +28,20 @@ const userSchema = new mongoose.Schema({
     }
   ],
 
-  // Invoice preferences - auto-fill on every invoice
+
   defaultCurrency: { type: String, default: 'USD' },
   defaultPaymentTerms: { type: Number, default: 30 }, // days until due
   invoicePrefix: { type: String, default: 'INV' }, // INV-001, INV-002
   nextInvoiceNumber: { type: Number, default: 1 }, // auto increment
 
-  // Branding
-  logo: { type: String }, // uploaded image URL
-  invoiceNotes: { type: String }, // default footer note on every invoice
 
-  // Stripe
-  stripeAccountId: { type: String }, // their connected Stripe account
+  logo: { type: String },
+  invoiceNotes: { type: String },
 
-  // User preferences
+
+  stripeAccountId: { type: String },
+
+
   notifications: { type: Boolean, default: true },
 
 }, { timestamps: true });

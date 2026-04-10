@@ -9,23 +9,23 @@ export default function ImageUpload({ currentImage }) {
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
-  // show preview immediately before uploading
+
   function handleFileSelect(e) {
     const file = e.target.files[0]
     if (!file) return
 
-    // client side validation
+
     if (file.size > 2 * 1024 * 1024) {
       setError('Image must be under 2MB')
       return
     }
 
-    // show preview instantly
+
     const objectUrl = URL.createObjectURL(file)
     setPreview(objectUrl)
     setError(null)
 
-    // auto upload on select
+
     handleUpload(file)
   }
 
@@ -37,21 +37,21 @@ export default function ImageUpload({ currentImage }) {
       const formData = new FormData()
       formData.append('image', file)
       const url = await uploadProfileImage(formData)
-      setPreview(url) // replace blob URL with cloudinary URL
+      setPreview(url)
     } catch (err) {
       setError(err.message)
-      setPreview(currentImage) // revert to old image on error
+      setPreview(currentImage)
     } finally {
       setLoading(false)
     }
   }
-    
-    return(
-        <div className="flex flex-col items-center gap-3">
 
-      {/* IMAGE CIRCLE */}
+  return (
+    <div className="flex flex-col items-center gap-3">
+
+
       <div
-        className="relative w-48 h-48 rounded-full cursor-pointer group overflow-hidden border-2 border-dashed border-green-400 hover:border-green-500 transition-colors"
+        className="relative w-48 h-48 rounded-full cursor-pointer group overflow-hidden border-2 border-green-300 hover:border-green-500 transition-colors"
         onClick={() => inputRef.current?.click()}
       >
         {preview ? (
@@ -62,17 +62,17 @@ export default function ImageUpload({ currentImage }) {
               fill
               className="object-cover"
             />
-            
+
           </>
         ) : (
-          
+
           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
             <span className="text-2xl">📷</span>
             <span className="text-xs text-gray-400 mt-1">Upload</span>
           </div>
         )}
 
-        
+
         {loading && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -80,7 +80,7 @@ export default function ImageUpload({ currentImage }) {
         )}
       </div>
 
-      
+
       <input
         ref={inputRef}
         type="file"
@@ -89,7 +89,7 @@ export default function ImageUpload({ currentImage }) {
         onChange={handleFileSelect}
       />
 
-      
+
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -99,14 +99,14 @@ export default function ImageUpload({ currentImage }) {
         {loading ? 'Uploading...' : preview ? 'Change photo' : 'Upload photo'}
       </button>
 
-      
+
       {error && (
         <p className="text-xs text-red-500">{error}</p>
       )}
 
-      
+
       <p className="text-xs text-gray-400">JPG, PNG or WEBP, max 2MB</p>
     </div>
-    );
-    
+  );
+
 }

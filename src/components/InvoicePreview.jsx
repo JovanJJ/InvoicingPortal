@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { formatDate } from './helper/formatDate';
 import formatDurationForInvoice from './FormatDurationForInvoice';
 import { saveInvoice, splitTimeEntryByInvoice, updateTimeEntry, deleteTimeEntry } from '@/lib/actions';
+import Loading from "@/app/loading";
 
 
 export default function InvoicePreview({ handleInvoicePreview, project, client, timeEntries, user, bankIban }) {
     const router = useRouter();
+    const userImage = user?.logo ? user.logo : user?.avatar;
     const [isOpen, setIsOpen] = useState(true);
     const [message, setMessage] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -19,6 +21,8 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const [note, setNote] = useState("");
     const [deleteEntry, setDeleteEntry] = useState(false);
     const [localUnbilled, setLocalUnbilled] = useState(() => (timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
+    const [isLoading, setIsLoading] = useState(false);
+
 
     useEffect(() => {
         setLocalUnbilled((timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
@@ -47,10 +51,15 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
 
     const handleSaveInvoice = async () => {
-        const res = await saveInvoice(project, client, unbilledEntries, user, dueDate, note);
-        const invoiceId = res.invoiceId;
-        await Promise.all(unbilledEntries.map(entry => splitTimeEntryByInvoice(entry._id, invoiceId)));
-        setMessage(res.message);
+        try {
+            setIsLoading(true);
+            const res = await saveInvoice(project, client, unbilledEntries, user, dueDate, note);
+            const invoiceId = res.invoiceId;
+            await Promise.all(unbilledEntries.map(entry => splitTimeEntryByInvoice(entry._id, invoiceId)));
+            setMessage(res.message);
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const entryUpdate = async (entryId, description, duration) => {
@@ -76,6 +85,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     return (
         !project.rate ? <p className='inline ml-10 text-red-400'>"Make sure you added project rate"</p>
             :
+
             <div className="absolute inset-0 backdrop-blur-[2px] z-40 transition-opacity py-8 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto border bg-white p-4 border-indigo-400 rounded-lg ">
                     <div className="flex justify-between items-center mb-8">
@@ -86,9 +96,9 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
                         <div className="flex justify-between items-start mb-10">
                             <div>
-                                {user.logo && (
+                                {userImage && (
                                     <div className="mb-4">
-                                        <img src={user.logo} className="w-20 h-20 object-contain" alt="Logo" />
+                                        <img src={userImage} className="w-20 h-20 object-contain" alt="Logo" />
                                         <p className="text-[10px] text-gray-400 mt-1 italic tracking-tight uppercase">You can change picture in settings.</p>
                                     </div>
                                 )}
@@ -302,7 +312,13 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                 </div>
 
                                 <div className="text-center my-4 space-x-5">
-                                    {!message && <button onClick={handleSaveInvoice} className='px-2 py-2 bg-blue-300 rounded active:bg-blue-200 cursor-pointer'>Save Invoice</button>}
+                                    {isLoading ? (
+                                        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/60 backdrop-blur-sm">
+                                            <Loading />
+                                        </div>
+                                    )
+                                        :
+                                        !message && <button onClick={handleSaveInvoice} className='px-2 py-2 bg-blue-300 rounded active:bg-blue-200 cursor-pointer'>Save Invoice</button>}
                                     <button
                                         onClick={() => handleInvoicePreview(false)}
                                         className={`${message ? "bg-blue-600" : "bg-red-600"} text-white px-4 py-2 cursor-pointer rounded hover:bg-blue-700 transition-colors`}
@@ -310,6 +326,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                                         {message ? "Ok" : "Cancel"}
                                     </button>
                                     <p className='text-green-400 mt-5'>{message}</p>
+
                                 </div>
                             </>
                         )}

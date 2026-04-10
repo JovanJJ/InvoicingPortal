@@ -58,14 +58,14 @@ export default function ProjectPageHtml({ status, handleStart, handlePause, setW
 
                         <div className="flex gap-3">
                             {status === 'noWatch' && (
-                                <button className='bg-green-500 text-white px-4 py-2 rounded' onClick={handleStart}>Start</button>
+                                <button className='bg-green-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-green-600 active:bg-green-300' onClick={handleStart}>Start</button>
                             )}
 
                             {status === 'running' && (
                                 <>
-                                    <button className='bg-yellow-400 text-white px-4 py-2 rounded' onClick={handlePause}>Pause</button>
+                                    <button className='bg-yellow-400 text-white px-4 py-2 rounded cursor-pointer' onClick={handlePause}>Pause</button>
                                     <button
-                                        className='bg-gray-500 text-white px-4 py-2 rounded'
+                                        className='bg-gray-500 text-white px-4 py-2 rounded cursor-pointer'
                                         onClick={async () => {
                                             setWasRunning(true);
                                             await handlePause();
@@ -74,7 +74,7 @@ export default function ProjectPageHtml({ status, handleStart, handlePause, setW
                                     >
                                         Stop
                                     </button>
-                                    <button onClick={() => setAbortMessage(true)} className='bg-red-500 text-white px-4 py-2 rounded'>Abort</button>
+                                    <button onClick={() => setAbortMessage(true)} className='bg-red-500 text-white px-4 py-2 rounded cursor-pointer'>Abort</button>
                                 </>
                             )}
 

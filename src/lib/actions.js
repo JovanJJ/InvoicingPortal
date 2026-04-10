@@ -1217,6 +1217,7 @@ export async function sendInvoiceEmail(invoiceData) {
 
     const tax = subtotal * (taxRate / 100);
     const totalDue = subtotal + tax;
+    const userImage = user?.logo ? user.logo : user?.avatar;
 
     // Format line items for HTML
     const lineItemsHTML = (commitList || []).map((item, index) => `
@@ -1278,7 +1279,7 @@ export async function sendInvoiceEmail(invoiceData) {
                         </td>
                     </tr>
                 </table>
-                <img src=${user.avatar || user.logo} style="width=20px; height=20px;">
+                ${userImage ? `<img src="${userImage}" alt="logo" style="width: 80px; height: 80px;">` : ''}
             </div>
 
             <!-- Addresses -->
