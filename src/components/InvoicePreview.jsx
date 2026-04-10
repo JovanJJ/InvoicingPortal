@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDate } from './helper/formatDate';
 import formatDurationForInvoice from './FormatDurationForInvoice';
 import { saveInvoice, splitTimeEntryByInvoice, updateTimeEntry, deleteTimeEntry } from '@/lib/actions';
 
 
 export default function InvoicePreview({ handleInvoicePreview, project, client, timeEntries, user, bankIban }) {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(true);
     const [message, setMessage] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -57,12 +59,17 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
             const parsed = Number(duration);
             const rounded = Number.isFinite(parsed) ? Math.round(parsed) : undefined;
             setLocalUnbilled(prev => prev.map(ent => ent._id === entryId ? { ...ent, description: description !== undefined ? description : ent.description, duration: rounded !== undefined ? rounded : ent.duration, updatedAt: new Date().toISOString() } : ent));
+            router.refresh();
         }
     }
 
     const handleDeleteEntry = async (entryId) => {
         const res = await deleteTimeEntry(entryId);
-        setDeleteEntry(false);
+        if (res?.success) {
+            setLocalUnbilled(prev => prev.filter(ent => ent._id !== entryId));
+            setDeleteEntry(false);
+            router.refresh();
+        }
     }
     const toggleInvoice = () => setIsOpen(!isOpen);
 

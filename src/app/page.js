@@ -80,7 +80,7 @@ export default function Home() {
 
           <div className="bg-green-200">
             <div className="relative aspect-video">
-              <Image src="/dashboard-preview.png" alt="img" fill className="object-fit" />
+              <Image src="/first-section.png" alt="img" fill className="object-fit" />
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function Home() {
 
           <div className="bg-purple-200 md:pt-0">
             <div className="relative aspect-video">
-              <Image src="/two.png" alt="img" fill className="object-fit" />
+              <Image src="/second-section.png" alt="img" fill className="object-fit" />
             </div>
           </div>
         </div>

@@ -3,9 +3,11 @@
 import formatDuration from "./formatDuration";
 import formatDurationForInvoice from "./FormatDurationForInvoice";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { updateEntry, deleteTimeEntry, calculateProjectValue, calculateLogedHours } from "@/lib/actions";
 
 export default function CommitsList({ lineItems }) {
+  const router = useRouter();
   const [isDelete, setIsDelete] = useState(false);
   const [isEditing, setIsEditing] = useState("");
   const [formData, setFormData] = useState([]);
@@ -58,12 +60,14 @@ export default function CommitsList({ lineItems }) {
     await calculateLogedHours(projectId);
     await calculateProjectValue(projectId);
     setIsEditing(false);
+    router.refresh();
   }
 
   const handleDelete = async (id) => {
     await deleteTimeEntry(id);
     setIsEditing("");
     setIsDelete("");
+    router.refresh();
   }
 
 

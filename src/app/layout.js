@@ -28,8 +28,9 @@ export default function RootLayout({ children }) {
         <Providers>
           <Navbar />
           <main className="flex-1">{children}</main>
+          <Footer />
         </Providers>
-        <Footer />
+
       </body>
     </html>
   );

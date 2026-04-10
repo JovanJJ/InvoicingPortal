@@ -8,7 +8,7 @@ export default async function HoursChart({ projectId }) {
 
   return (
     <div>
-      <ProjectHoursChart projectId={projectId} />
+      <ProjectHoursChart initialData={result} />
     </div>
   );
 

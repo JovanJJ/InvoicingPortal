@@ -1,13 +1,13 @@
 
 
-export default function FixedRateProgressBar({fixedRateProgressData}) {
+export default function FixedRateProgressBar({ fixedRateProgressData }) {
     const { projectName, clientName, projectStatus, totalLoggedHours, fixedRate, totalPaid, currency, paymentPercentage } = fixedRateProgressData;
     const getStatusColor = (status) => {
         return status === "active"
             ? "bg-blue-100 text-blue-800"
             : "bg-green-100 text-green-800";
     };
-
+    console.log("here", paymentPercentage);
     const getStatusText = (status) => {
         return status === "active" ? "Active" : "Done";
     };
@@ -52,9 +52,10 @@ export default function FixedRateProgressBar({fixedRateProgressData}) {
                             {paymentPercentage || 0}%
                         </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div
-                            className={`bg-green-500 h-2 rounded-full transition-all w-[${paymentPercentage}%] duration-300`}
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${paymentPercentage || 0}%` }}
                         ></div>
                     </div>
                 </div>

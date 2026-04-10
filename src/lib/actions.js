@@ -40,44 +40,6 @@ fillCurrencies("GBP");
 fillCurrencies("CHF");
 */
 
-function splitEntryAcrossDays(entry, timezone) {
-    const start = new Date(entry.timerStartedAt)
-    const stop = new Date(entry.timerStoppedAt)
-    const result = {}
-
-    const startDate = start.toLocaleDateString('en-CA', { timeZone: timezone })
-    const stopDate = stop.toLocaleDateString('en-CA', { timeZone: timezone })
-
-    if (startDate === stopDate) {
-        const secondsThisDay = Math.floor((stop - start) / 1000)
-        result[startDate] = secondsThisDay
-        return result
-    }
-
-    let current = new Date(start)
-
-    while (true) {
-        const currentDate = current.toLocaleDateString('en-CA', { timeZone: timezone })
-        const nextDay = new Date(current)
-        nextDay.setDate(nextDay.getDate() + 1)
-        const midnight = new Date(nextDay.toLocaleDateString('en-CA', { timeZone: timezone }))
-
-        if (currentDate === stopDate) {
-            const secondsThisDay = Math.floor((stop - current) / 1000)
-            result[currentDate] = (result[currentDate] || 0) + secondsThisDay
-            break
-        } else {
-            const secondsThisDay = Math.floor((midnight - current) / 1000)
-            result[currentDate] = (result[currentDate] || 0) + secondsThisDay
-            current = midnight
-        }
-    }
-
-    return result
-}
-
-
-
 async function createClient(clientContactName, clientEmail, clientCountry, userId) {
     await connectDB();
     const client = await Client.create({
@@ -549,22 +511,25 @@ export async function getDailyHoursForProject(projectId, timezone) {
     const entries = await TimeEntry.find({
         projectId,
         status: 'completed'
-    }).select('timerStartedAt timerStoppedAt duration')
+    }).select('createdAt updatedAt timerStoppedAt duration')
 
     if (entries.length === 0) return []
 
     const dailyMap = {}
 
     entries.forEach(entry => {
+        const effectiveDate = entry.updatedAt || entry.timerStoppedAt || entry.createdAt
+        if (!effectiveDate) return
 
-        const split = splitEntryAcrossDays(entry, timezone)
+        const dateKey = new Date(effectiveDate).toLocaleDateString('en-CA', { timeZone: timezone })
+        const durationMinutes = Number(entry.duration) || 0
+        const durationSeconds = durationMinutes * 60
 
-        Object.entries(split).forEach(([date, seconds]) => {
-            dailyMap[date] = (dailyMap[date] || 0) + seconds
-        })
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + durationSeconds
     })
 
     const sortedDates = Object.keys(dailyMap).sort()
+    if (sortedDates.length === 0) return []
     const start = new Date(sortedDates[0])
     const end = new Date()
     const result = []
@@ -1015,7 +980,7 @@ export async function fetchPaymentPercentage(projectId) {
 
     const totalPaid = payments.reduce((sum, p) => sum + (Number(p.totalPaid) || 0), 0);
 
-    const percentage = (Number(totalPaid) / Number(projectRate) * 100).toFixed(2);
+    const percentage = (Number(totalPaid) / Number(projectRate) * 100).toFixed(0);
 
     return { fixedRate: projectRate, currency: currency, totalPaid: totalPaid, paymentPercentage: percentage }
 }
@@ -1540,7 +1505,7 @@ export async function projectDashStats(projectId, currency) {
             dashStats: {
                 projectValue: projectValue.toFixed(2),
                 totalPaid: totalPaid.toFixed(2),
-                moneyToCharge: moneyToCharge > 0 ? (moneyToCharge).toFixed(2) : `${(moneyToCharge).toFixed(2)}(overpaid)`
+                moneyToCharge: moneyToCharge >= 0 ? (moneyToCharge).toFixed(2) : `${(moneyToCharge).toFixed(2)}(overpaid)`
             }
         };
     } catch (error) {

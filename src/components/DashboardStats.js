@@ -29,9 +29,9 @@ export default async function DashboardStats({ searchParams }) {
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
                 <StatsCards earnings={earnings.earnings} activeProjects={projectsList.length} projectsValue={projectsValue} totalLoggedHours={totalLoggedHours.totalLoggedHours} chargeMoney={chargeMoney} currency={currency} />
-                <DashStatsPerProject projects={projects} projectStats={values} currency={currency} />
+                <DashStatsPerProject projects={projects || []} projectStats={values} currency={currency} />
                 <NewProjectCard />
-                <ProjectsList projects={projectsList} />
+                {projectsList.length !== 0 && <ProjectsList projects={projectsList} />}
             </div>
         </section>
     );

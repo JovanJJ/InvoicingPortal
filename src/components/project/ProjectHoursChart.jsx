@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -9,7 +8,6 @@ import {
   ResponsiveContainer,
   CartesianGrid
 } from 'recharts'
-import { getDailyHoursForProject } from "@/lib/actions";
 
 function formatTooltip(seconds) {
   const hours = (seconds / 3600).toFixed(1)
@@ -40,42 +38,18 @@ function CustomTooltip({ active, payload }) {
   )
 }
 
-export default function ProjectHoursChart({ projectId }) {
-  const [chartData, setChartData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+export default function ProjectHoursChart({ initialData = [] }) {
+  const chartData = initialData.map(day => ({
+    date: day.date,
+    hours: Math.round((day.seconds / 3600) * 10) / 10,
+    seconds: day.seconds
+  }))
 
-  useEffect(() => {
-    async function fetchChartData() {
-      try {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-        const result = await getDailyHoursForProject(projectId, timezone)
-
-        const converted = result.map(day => ({
-          date: day.date,
-          hours: Math.round((day.seconds / 3600) * 10) / 10,
-          seconds: day.seconds
-        }))
-
-        setChartData(converted)
-      } catch (err) {
-        setError('Failed to load chart data')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchChartData()
-  }, [projectId])
-
-  if (loading) return <div>Loading chart...</div>
-  if (error) return <div>{error}</div>
-  if (chartData.length === 0) return <div>No time tracked yet</div>
+  //if (chartData.length === 0) return <div>No time tracked yet, </div>
 
   return (
     <div>
-      <h3>Time Spent Per Day</h3>
+      <h3>Time Spent Per Day {chartData.length === 0 && "(no time tracked yet)"}</h3>
 
       <ResponsiveContainer width="100%" height={300}>
         <BarChart

@@ -23,13 +23,13 @@ export default function DashStatsPerProject({ projects, projectStats, currency }
                 <div className="flex gap-3">
                     <div className="">Project:</div>
                     <select
-                        className="outline-none border border-gray-300"
+                        className="outline-none border rounded border-gray-300"
                         onChange={handleStatsQuery}
                     >
                         <option value="">Select</option>
                         {
                             projects.map((project) => (
-                                <option key={project._id} value={project._id}>{project.name}</option>
+                                <option key={project._id || ""} value={project._id || ""}>{project.name || ""}</option>
                             ))
                         }
                     </select>

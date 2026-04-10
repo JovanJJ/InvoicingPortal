@@ -13,15 +13,25 @@ export default function Navbar() {
     setIsOpen(!isOpen);
   };
 
+  let navLinks = [];
+  if (status === "authenticated") {
+    navLinks = [
+      { href: '/', label: 'Home' },
+      { href: '/projects', label: 'Projects' },
+      { href: '/invoices', label: 'Invoices' },
+      { href: '/clients', label: 'Clients' },
+      { href: '/contact', label: 'Contact' },
+      { href: '/about', label: 'About' },
+    ];
+  } else {
+    navLinks = [
+      { href: '/', label: 'Home' },
+      { href: '/contact', label: 'Contact' },
+      { href: '/about', label: 'About' },
+    ];
+  }
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/invoices', label: 'Invoices' },
-    { href: '/clients', label: 'Clients' },
-    { href: '/contact', label: 'Contact' },
-    { href: '/about', label: 'About' },
-  ];
+
 
 
 
@@ -32,8 +42,10 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-13">
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
-              InvoiceFlow
+            <Link href="/" >
+              <span className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-linear-to-r from-green-600 via-emerald-500 to-teal-600">
+                monitorInvoice
+              </span>
             </Link>
           </div>
 
@@ -50,7 +62,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right Icons */}
+
           <div className="hidden md:flex items-center space-x-4">
             <Link href="/settings" className="p-2 text-gray-700 hover:text-green-600 transition-colors">
               <Image src="/settings.svg" alt="img" width={25} height={25} />

@@ -19,7 +19,7 @@ export default function ClientsCardsGrid({ projectsAndClients }) {
             taxIdNumber: item.taxIdNumber || ""
         });
     }
-    console.log(updatedClient);
+
     const handleClientUpdate = (e) => {
         setUpdatedClient({
             ...updatedClient,

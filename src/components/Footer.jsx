@@ -1,151 +1,65 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 export default function Footer() {
+  const { status } = useSession();
   const currentYear = new Date().getFullYear();
 
+  let navLinks = [];
+  if (status === "authenticated") {
+    navLinks = [
+      { href: '/', label: 'Home' },
+      { href: '/projects', label: 'Projects' },
+      { href: '/invoices', label: 'Invoices' },
+      { href: '/clients', label: 'Clients' },
+      { href: '/contact', label: 'Contact' },
+      { href: '/about', label: 'About' },
+    ];
+  } else {
+    navLinks = [
+      { href: '/', label: 'Home' },
+      { href: '/contact', label: 'Contact' },
+      { href: '/about', label: 'About' },
+    ];
+  }
+
   return (
-    <footer className="text-gray-300 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand */}
-          <div className="md:col-span-1">
-            <h3 className="text-white text-xl font-bold mb-2">InvoiceFlow</h3>
-            <p className="text-sm text-gray-400">
+    <footer className="bg-green-50 border-t border-green-100 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+
+          <div className="text-center md:text-left">
+            <Link href="/" className="inline-block text-2xl font-black mb-3">
+              <span className="bg-clip-text text-transparent bg-linear-to-r from-green-600 via-emerald-500 to-teal-600">
+                monitorInvoice
+              </span>
+            </Link>
+            <p className="text-gray-600 text-sm max-w-xs">
               Simplify your invoicing process with our powerful SaaS solution.
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-white font-semibold mb-4">Navigation</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/about"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/projects"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Projects
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/contact"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Contact
-                </Link>
-              </li>
-            </ul>
-          </div>
 
-          {/* Company */}
-          <div>
-            <h4 className="text-white font-semibold mb-4">Company</h4>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Terms of Service
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  FAQ
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="text-white font-semibold mb-4">Support</h4>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="mailto:support@invoiceflow.com"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Email Support
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Contact Us
-                </a>
-              </li>
-            </ul>
+          <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-gray-600 hover:text-green-600 transition-all duration-300 text-sm font-medium hover:scale-105"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-700 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © {currentYear} InvoiceFlow. All rights reserved.
-            </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Twitter
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                LinkedIn
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                GitHub
-              </a>
-            </div>
-          </div>
+
+        <div className="mt-8 pt-8 border-t border-green-200/50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-500 text-xs">
+            © {currentYear} monitorInvoice. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
