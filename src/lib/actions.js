@@ -20,17 +20,6 @@ import formatDurationForInvoice from "@/components/FormatDurationForInvoice";
 import { encryptIBAN } from "./encryption";
 import { decryptIBAN } from "./encryption";
 
-function maskIban(iban) {
-    if (!iban) return "";
-    if (iban.length <= 8) return iban;
-
-    const start = iban.slice(0, 4);
-    const end = iban.slice(-4);
-    const hidden = "*".repeat(Math.max(0, iban.length - 8));
-
-    return start + hidden + end;
-}
-
 /*
 async function fillCurrencies(currency) {
     await connectDB();
@@ -88,27 +77,24 @@ export async function fetchUser(userId) {
     await connectDB();
     const data = await User.findById(userId).lean();
     const hiddenIban = (data.bankAccounts || []).map((acc) => {
-        if (!acc.iban) {
+        if (!acc.iban || acc.iban.length <= 8) {
             return {
                 ...acc,
                 _id: acc._id?.toString()
             };
         }
-
-        let decryptedIban = acc.iban;
-        try {
-            decryptedIban = decryptIBAN(acc.iban);
-        } catch (error) {
-            console.error("Failed to decrypt IBAN in fetchUser:", error);
-        }
-
+        const start = acc.iban.slice(0, 4)
+        const end = acc.iban.slice(-4)
+        const count = Math.max(0, acc.iban.length - 8);
+        const hidden = "*".repeat(count)
         return {
             ...acc,
             _id: acc._id?.toString(),
-            iban: maskIban(decryptedIban)
+            iban: start + hidden + end
         }
     })
     console.log("hiden", hiddenIban);
+
     const user = {
         ...data,
         _id: data._id.toString(),
@@ -767,21 +753,10 @@ export async function fetchInvoices(userId, searchParams) {
             userId: inv.userId ? {
                 ...inv.userId,
                 _id: inv.userId._id.toString(),
-                bankAccounts: (inv.userId.bankAccounts || []).map(acc => {
-                    let decryptedIban = acc.iban;
-
-                    try {
-                        decryptedIban = decryptIBAN(acc.iban);
-                    } catch (error) {
-                        console.error("Failed to decrypt IBAN in fetchInvoices:", error);
-                    }
-
-                    return {
-                        ...acc,
-                        _id: acc._id?.toString(),
-                        iban: decryptedIban
-                    };
-                })
+                bankAccounts: (inv.userId.bankAccounts || []).map(acc => ({
+                    ...acc,
+                    _id: acc._id?.toString()
+                }))
             } : null,
             issueDate: inv.issueDate ? inv.issueDate.toISOString() : null,
             dueDate: inv.dueDate ? inv.dueDate.toISOString() : null,
@@ -1114,14 +1089,7 @@ export async function fetchBankIban(userId, projectBankId) {
     }
 
     if (bankAccount) {
-        let decryptedIban = bankAccount.iban;
-        try {
-            decryptedIban = decryptIBAN(bankAccount.iban);
-        } catch (error) {
-            console.error("Failed to decrypt IBAN in fetchBankIban:", error);
-        }
-
-        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: decryptedIban }
+        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
     }
 
 }
