@@ -11,6 +11,6 @@ export default function GetStartedButton() {
             ?
             <AuthButton />
             :
-            <Link href="/projects" className="text-xl font-extrabold tracking-tight text-slate-900 animate-pulse">Create project</Link>
+            <Link href="/projects" className="text-xl font-extrabold text-green-500 border hover:bg-green-100 transition px-5 py-2 rounded-2xl tracking-tight ">Create project</Link>
     );
 }

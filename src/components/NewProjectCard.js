@@ -22,11 +22,13 @@ export default function NewProjectCard() {
         const result = await handleCreateProject(formData);
         setMessage(result.message);
         setSuccess(result.success);
-        setTimeout(() => {
-            setMessage("");
-            setSuccess("");
-            setIsModalOpen(false);
-        }, 4000)
+        if (!message === "All fields are required") {
+            setTimeout(() => {
+                setMessage("");
+                setSuccess("");
+                setIsModalOpen(false);
+            }, 4000)
+        }
     }
 
     return (

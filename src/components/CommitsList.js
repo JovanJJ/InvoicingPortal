@@ -102,7 +102,7 @@ export default function CommitsList({ lineItems }) {
             [...formData].reverse().map((commit, index) => (
               <div
                 key={index}
-                className="border-l-4 border-b-4 border-green-500 bg-gray-50 rounded p-4 pr-0 hover:bg-gray-100 transition-colors"
+                className="border border-green-300 bg-gray-50 rounded p-4 pr-0 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex justify-between gap-3 mb-1">
                   {isEditing === commit._id
@@ -116,7 +116,7 @@ export default function CommitsList({ lineItems }) {
                       {formatDurationForInvoice(commit.duration * 60)}
                     </p>
                   }
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mr-2">
                     {!isDelete && !isEditing && <p onClick={() => setIsEditing(commit._id.toString())} className="text-gray-600 hover:text-black cursor-pointer">edit</p>}
                     {isEditing === commit._id &&
                       <div className="flex gap-3">

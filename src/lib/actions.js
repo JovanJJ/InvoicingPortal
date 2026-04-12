@@ -17,6 +17,19 @@ import calculateInBaseCurrency from "@/components/helper/calculateBaseCurrency";
 import Currency from "./models/Currency";
 import nodemailer from "nodemailer";
 import formatDurationForInvoice from "@/components/FormatDurationForInvoice";
+import { encryptIBAN } from "./encryption";
+import { decryptIBAN } from "./encryption";
+
+function maskIban(iban) {
+    if (!iban) return "";
+    if (iban.length <= 8) return iban;
+
+    const start = iban.slice(0, 4);
+    const end = iban.slice(-4);
+    const hidden = "*".repeat(Math.max(0, iban.length - 8));
+
+    return start + hidden + end;
+}
 
 /*
 async function fillCurrencies(currency) {
@@ -75,23 +88,27 @@ export async function fetchUser(userId) {
     await connectDB();
     const data = await User.findById(userId).lean();
     const hiddenIban = (data.bankAccounts || []).map((acc) => {
-        if (!acc.iban || acc.iban.length <= 8) {
+        if (!acc.iban) {
             return {
                 ...acc,
                 _id: acc._id?.toString()
             };
         }
 
-        const start = acc.iban.slice(0, 4)
-        const end = acc.iban.slice(-4)
-        const count = Math.max(0, acc.iban.length - 8);
-        const hidden = "*".repeat(count)
+        let decryptedIban = acc.iban;
+        try {
+            decryptedIban = decryptIBAN(acc.iban);
+        } catch (error) {
+            console.error("Failed to decrypt IBAN in fetchUser:", error);
+        }
+
         return {
             ...acc,
             _id: acc._id?.toString(),
-            iban: start + hidden + end
+            iban: maskIban(decryptedIban)
         }
     })
+    console.log("hiden", hiddenIban);
     const user = {
         ...data,
         _id: data._id.toString(),
@@ -116,21 +133,31 @@ export async function fetchUserDefaultCurrnecy(userId) {
 }
 
 export async function handleCreateProject(formData) {
-    const session = await getSession();
-    const userId = session.user?.id;
-    const { projectName, clientContactName, clientEmail, clientCountry, paymentType } = await formData;
+    try {
+        const session = await getSession();
+        const userId = session.user?.id;
+        const { projectName, clientContactName, clientEmail, clientCountry, paymentType } = await formData;
+        if (!projectName, !clientContactName, !clientEmail, !clientCountry, !paymentType) {
+            return { success: false, message: "All fields are required" }
+        }
 
-    const { clientId } = await createClient(clientContactName, clientEmail, clientCountry, userId);
-    const project = await createProject(projectName, paymentType, clientId);
+        const { clientId } = await createClient(clientContactName, clientEmail, clientCountry, userId);
+        const project = await createProject(projectName, paymentType, clientId);
+        if (clientId && project.success) {
+            revalidatePath("/projects");
+            return { success: true, message: "Successfully created project!" }
+        } else {
+            return { success: false, message: "Something went wrong, please try again" }
+        }
 
-
-
-    if (clientId && project.success) {
-        revalidatePath("/projects");
-        return { success: true, message: "Successfully created project!" }
-    } else {
-        return { success: false, message: "Something went wrong, please try again" }
+    } catch (error) {
+        console.error(error);
     }
+
+
+
+
+
 }
 
 export async function fetchProjectList(userId, search) {
@@ -635,10 +662,12 @@ export async function addBankAccount(userId, bankData) {
         if (!bankName || !iban || !currency || !accountOwnerFirstName || !accountOwnerLastName) return { success: false, message: "All fields are required" };
         const user = await User.findById(userId);
         if (!user) return { success: false, message: "User not found" };
+        const encryptedIban = encryptIBAN(iban);
+        console.log("here", encryptedIban)
 
         user.bankAccounts.push({
             bankName,
-            iban,
+            iban: encryptedIban,
             currency,
             accountOwnerFirstName,
             accountOwnerLastName,
@@ -738,10 +767,21 @@ export async function fetchInvoices(userId, searchParams) {
             userId: inv.userId ? {
                 ...inv.userId,
                 _id: inv.userId._id.toString(),
-                bankAccounts: (inv.userId.bankAccounts || []).map(acc => ({
-                    ...acc,
-                    _id: acc._id?.toString()
-                }))
+                bankAccounts: (inv.userId.bankAccounts || []).map(acc => {
+                    let decryptedIban = acc.iban;
+
+                    try {
+                        decryptedIban = decryptIBAN(acc.iban);
+                    } catch (error) {
+                        console.error("Failed to decrypt IBAN in fetchInvoices:", error);
+                    }
+
+                    return {
+                        ...acc,
+                        _id: acc._id?.toString(),
+                        iban: decryptedIban
+                    };
+                })
             } : null,
             issueDate: inv.issueDate ? inv.issueDate.toISOString() : null,
             dueDate: inv.dueDate ? inv.dueDate.toISOString() : null,
@@ -1074,7 +1114,14 @@ export async function fetchBankIban(userId, projectBankId) {
     }
 
     if (bankAccount) {
-        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
+        let decryptedIban = bankAccount.iban;
+        try {
+            decryptedIban = decryptIBAN(bankAccount.iban);
+        } catch (error) {
+            console.error("Failed to decrypt IBAN in fetchBankIban:", error);
+        }
+
+        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: decryptedIban }
     }
 
 }
@@ -1197,7 +1244,7 @@ export async function sendInvoiceEmail(invoiceData) {
         notes,
         totalAmount
     } = invoiceData;
-
+    console.log(invoiceData);
     const formatDateLocal = (date) => {
         if (!date) return "N/A";
         return new Date(date).toLocaleDateString("en-GB");
@@ -1217,9 +1264,8 @@ export async function sendInvoiceEmail(invoiceData) {
 
     const tax = subtotal * (taxRate / 100);
     const totalDue = subtotal + tax;
-    const userImage = user?.logo ? user.logo : user?.avatar;
 
-    // Format line items for HTML
+
     const lineItemsHTML = (commitList || []).map((item, index) => `
         <tr style="background-color: ${index % 2 === 1 ? '#f9fafb' : '#ffffff'};">
             <td style="padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
@@ -1237,7 +1283,7 @@ export async function sendInvoiceEmail(invoiceData) {
         </tr>
     `).join('');
 
-    // Payment details (like in InvoicesList.jsx)
+
     let paymentDetailsHTML = '';
     if (user?.bankAccounts && Array.isArray(user.bankAccounts)) {
         const defaultBank = user.bankAccounts.find(b => b.isDefault) || user.bankAccounts[0];
@@ -1279,7 +1325,7 @@ export async function sendInvoiceEmail(invoiceData) {
                         </td>
                     </tr>
                 </table>
-                ${userImage ? `<img src="${userImage}" alt="logo" style="width: 80px; height: 80px;">` : ''}
+                <img src=${user.logo || user.avatar} style="width:100px; height:100px;">
             </div>
 
             <!-- Addresses -->
@@ -1408,6 +1454,7 @@ export async function sendInvoiceEmail(invoiceData) {
         return { success: false, message: "Failed to send email." };
     }
 }
+
 
 export async function deleteTimeEntry(entryId) {
     await connectDB();

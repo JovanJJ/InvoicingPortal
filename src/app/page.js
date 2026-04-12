@@ -71,6 +71,32 @@ export default function Home() {
         </div>
       </header>
       <div className="max-w-6xl w-full mx-auto">
+
+        <div className="flex px-5 max-h-[200px] h-full gap-5 mb-20">
+          <div className="flex-1 aspect-square rounded">
+            <div className="relative h-full">
+              <Image src="/secure.svg" alt="secure" fill />
+            </div>
+            <p className="text-center mt-2 md:text-xl">Encrypted sensitive data</p>
+          </div>
+
+          <div className="flex-1 aspect-square rounded">
+            <div className="relative h-full">
+              <Image src="/free.svg" alt="secure" fill />
+            </div>
+            <p className="text-center mt-2 md:text-xl">Fully free to use</p>
+          </div>
+
+
+          <div className="flex-1 aspect-square rounded">
+            <div className="relative h-full">
+              <Image src="/customizable.svg" alt="secure" fill />
+            </div>
+            <p className="text-center mt-2 md:text-xl">Easy for customizing</p>
+          </div>
+
+        </div>
+
         <div className="reveal-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out border border-gray-300 shadow-xl rounded-tr-4xl rounded-tl-4xl">
           <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-tl-4xl rounded-tr-4xl">
             <p className="text-center p-3 md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -80,7 +106,7 @@ export default function Home() {
 
           <div className="bg-green-200">
             <div className="relative aspect-video">
-              <Image src="/first-section.png" alt="img" fill className="object-fit" />
+              <Image src="/first-section.png" alt="img" fill quality={100} unoptimized className="object-fit" />
             </div>
           </div>
         </div>
@@ -94,7 +120,7 @@ export default function Home() {
 
           <div className="bg-purple-200 md:pt-0">
             <div className="relative aspect-video">
-              <Image src="/second-section.png" alt="img" fill className="object-fit" />
+              <Image src="/second-section.png" alt="img" quality={100} unoptimized fill className="object-fit" />
             </div>
           </div>
         </div>
@@ -107,12 +133,12 @@ export default function Home() {
             </p>
 
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
-            <div className="reveal-from-left transform relative aspect-square transition-transform duration-1000 ease-out -translate-x-full opacity-0">
-              <Image src="/invoice2.png" alt="img" fill className="object-fit" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 overflow-hidden">
+            <div className="reveal-from-left transform relative aspect-[9/16] transition-transform duration-1000 ease-out -translate-x-full opacity-0">
+              <Image src="/invoice1.png" alt="img" fill quality={100} unoptimized className="object-fit" />
             </div>
-            <div className="reveal-from-right transform relative aspect-square transition-transform duration-1000 ease-out translate-x-full opacity-0">
-              <Image src="/invoice1.png" alt="img" fill className="object-fit" />
+            <div className="reveal-from-right transform relative aspect-[9/16] transition-transform duration-1000 ease-out translate-x-full opacity-0">
+              <Image src="/invoice2.png" alt="img" fill quality={100} unoptimized className="object-fit" />
             </div>
           </div>
         </div>
@@ -125,7 +151,7 @@ export default function Home() {
 
           <div className="bg-pink-200 md:pt-0">
             <div className="relative aspect-video">
-              <Image src="/four.png" alt="img" fill className="object-fit" />
+              <Image src="/four.png" alt="img" fill quality={100} unoptimized className="object-fit" />
             </div>
           </div>
         </div>
