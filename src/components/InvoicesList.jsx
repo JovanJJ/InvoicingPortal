@@ -152,7 +152,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                 ? (Number(invoice.totalAmount) || 0)
                 : currentCommitList.reduce((acc, item) => {
                   const minutes = isEditing ? Number(item.durationMinutes) : Number(item.duration);
-                  const total = (minutes / 60) * rate;
+                  const total = Number((((minutes || 0) / 60) * rate).toFixed(2));
                   return acc + total;
                 }, 0);
 

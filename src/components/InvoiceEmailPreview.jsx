@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { sendInvoiceEmail, markSentInvoice } from '@/lib/actions';
 import formatDurationForInvoice from './FormatDurationForInvoice';
+import { formatDate } from './helper/formatDate';
 import Loading from '@/app/loading';
 
 export default function InvoiceEmailPreview({ invoice, onClose }) {
@@ -20,9 +21,9 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
     const dueDate = invoice.dueDate;
     const currency = invoice.currency || '';
     const notes = invoice.notes;
-    const formatDateLocal = (date) => {
+    const displayDate = (date) => {
         if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('en-GB');
+        return formatDate(date);
     };
 
     const rate = project?.rate || 0;
@@ -129,11 +130,11 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                                         <tr>
                                             <td style={{ textAlign: 'center' }}>
                                                 <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 4 }}>Date</p>
-                                                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{formatDateLocal(issueDate)}</p>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{displayDate(issueDate)}</p>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 4 }}>Due Date</p>
-                                                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{formatDateLocal(dueDate)}</p>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{displayDate(dueDate)}</p>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 4 }}>Currency</p>
@@ -158,7 +159,7 @@ export default function InvoiceEmailPreview({ invoice, onClose }) {
                                             <tr key={index} style={{ backgroundColor: index % 2 === 1 ? '#f9fafb' : '#ffffff' }}>
                                                 <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb' }}>
                                                     <div style={{ fontWeight: 'bold', color: '#1f2937' }}>{item.description || 'Development Work'}</div>
-                                                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>{formatDateLocal(item.updatedAt || item.createdAt)}</div>
+                                                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>{displayDate(item.updatedAt || item.createdAt)}</div>
                                                 </td>
                                                 <td style={{ padding: '16px 20px', fontSize: 14, borderBottom: '1px solid #e5e7eb', color: '#4b5563' }}>
                                                     {formatDurationForInvoice(item.duration * 60)}

@@ -76,29 +76,28 @@ async function createProject(projectName, paymentType, clientId) {
 export async function fetchUser(userId) {
     await connectDB();
     const data = await User.findById(userId).lean();
-    const hiddenIban = (data.bankAccounts || []).map((acc) => {
-        if (!acc.iban || acc.iban.length <= 8) {
-            return {
-                ...acc,
-                _id: acc._id?.toString()
-            };
+    const mappedBankAccounts = (data.bankAccounts || []).map((acc) => {
+        let decryptedIban = acc.iban ? decryptIBAN(acc.iban) : acc.iban;
+        let maskedIban = decryptedIban;
+        
+        if (decryptedIban && decryptedIban.length > 8) {
+            const start = decryptedIban.slice(0, 4);
+            const end = decryptedIban.slice(-4);
+            const hidden = "*".repeat(decryptedIban.length - 8);
+            maskedIban = start + hidden + end;
         }
-        const start = acc.iban.slice(0, 4)
-        const end = acc.iban.slice(-4)
-        const count = Math.max(0, acc.iban.length - 8);
-        const hidden = "*".repeat(count)
+
         return {
             ...acc,
             _id: acc._id?.toString(),
-            iban: start + hidden + end
+            iban: maskedIban
         }
     })
-    console.log("hiden", hiddenIban);
 
     const user = {
         ...data,
         _id: data._id.toString(),
-        bankAccounts: hiddenIban
+        bankAccounts: mappedBankAccounts
     }
     return user;
 }
@@ -755,7 +754,8 @@ export async function fetchInvoices(userId, searchParams) {
                 _id: inv.userId._id.toString(),
                 bankAccounts: (inv.userId.bankAccounts || []).map(acc => ({
                     ...acc,
-                    _id: acc._id?.toString()
+                    _id: acc._id?.toString(),
+                    iban: acc.iban ? decryptIBAN(acc.iban) : acc.iban
                 }))
             } : null,
             issueDate: inv.issueDate ? inv.issueDate.toISOString() : null,
@@ -1529,4 +1529,38 @@ export async function projectDashStats(projectId, currency) {
         return { success: false, message: "server error" }
     }
 
+}
+
+export async function submitContactForm(formData) {
+    try {
+        const name = formData.get('name');
+        const email = formData.get('email');
+        const message = formData.get('message');
+
+        if (!name || !email || !message) {
+            return { success: false, message: "All fields are required." };
+        }
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.NODE_MAILER_EMAIL,
+                pass: process.env.NODE_MAILER_PW,
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"${name}" <${process.env.NODE_MAILER_EMAIL}>`,
+            replyTo: email,
+            to: process.env.NODE_MAILER_EMAIL,
+            subject: `New Contact Request from ${name}`,
+            text: `You have received a new message from ${name} (${email}):\n\n${message}`,
+            html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>`
+        });
+
+        return { success: true, message: "Your message has been sent successfully!" };
+    } catch (error) {
+        console.error("Error sending contact email:", error);
+        return { success: false, message: "Failed to send message. Please try again." };
+    }
 }

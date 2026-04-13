@@ -6,18 +6,29 @@ const ALGORITHM = 'aes-256-gcm';
 // The key must be exactly 32 bytes (256 bits). 
 // Generate one in your terminal using: require('crypto').randomBytes(32).toString('hex')
 // Store it in your .env file.
-const ENCRYPTION_KEY = Buffer.from(process.env.MASTER_ENCRYPTION_KEY, 'hex');
 const IV_LENGTH = 16;
+
+function getEncryptionKey() {
+    const rawKey = process.env.MASTER_ENCRYPTION_KEY;
+
+    if (!rawKey) {
+        throw new Error('MASTER_ENCRYPTION_KEY is not set');
+    }
+
+    return Buffer.from(rawKey, 'hex');
+}
 
 /**
  * Encrypts an IBAN and formats it for easy database storage.
  */
 export function encryptIBAN(iban) {
+    const encryptionKey = getEncryptionKey();
+
     // 1. Generate a random Initialization Vector
     const iv = crypto.randomBytes(IV_LENGTH);
 
     // 2. Create the cipher using the algorithm, key, and the random IV
-    const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, encryptionKey, iv);
 
     // 3. Encrypt the IBAN (from UTF-8 text to Hexadecimal)
     let encrypted = cipher.update(iban, 'utf8', 'hex');
@@ -39,6 +50,8 @@ export function decryptIBAN(encryptedString) {
     }
 
     try {
+        const encryptionKey = getEncryptionKey();
+
         // 1. Split the single string back into its three parts
         const [ivHex, authTagHex, encryptedHex] = encryptedString.split(':');
 
@@ -53,7 +66,7 @@ export function decryptIBAN(encryptedString) {
         const authTag = Buffer.from(authTagHex, 'hex');
 
         // 3. Create the decipher
-        const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+        const decipher = crypto.createDecipheriv(ALGORITHM, encryptionKey, iv);
 
         // 4. IMPORTANT: Set the Auth Tag to verify the data hasn't been tampered with
         decipher.setAuthTag(authTag);

@@ -72,7 +72,7 @@ const tips = [
 export default function HelpPage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8fff7_0%,#ffffff_35%,#f5fbff_100%)]">
-      <section className="border-b border-emerald-100 bg-[radial-gradient(circle_at_top,#d9f99d_0%,#f0fdf4_32%,transparent_70%)]">
+      <section className="border-b border-emerald-100 bg-[radial-gradient(circle_at_top,#9ded74_0%,#f0fdf4_32%,transparent_70%)]">
         <div className="mx-auto max-w-6xl px-6 py-20 md:px-10">
           <div className="max-w-3xl">
             <p className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-4 py-1 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700 shadow-sm">
@@ -85,20 +85,7 @@ export default function HelpPage() {
               This guide walks you through the typical flow of the app, from
               signing in to sending your first invoice.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link
-                href="/login"
-                className="rounded-2xl bg-emerald-600 px-6 py-3 font-semibold text-white shadow-lg shadow-emerald-200 transition-colors hover:bg-emerald-700"
-              >
-                Start With Login
-              </Link>
-              <Link
-                href="/projects"
-                className="rounded-2xl border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:text-emerald-700"
-              >
-                Open Projects
-              </Link>
-            </div>
+
           </div>
         </div>
       </section>

@@ -20,8 +20,9 @@ export default function Navbar() {
       { href: '/projects', label: 'Projects' },
       { href: '/invoices', label: 'Invoices' },
       { href: '/clients', label: 'Clients' },
+      { href: '/help', label: 'Help' },
       { href: '/contact', label: 'Contact' },
-      { href: '/about', label: 'About' },
+      { href: '/settings', label: 'Settings' },
     ];
   } else {
     navLinks = [
@@ -55,7 +56,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-gray-600 text-[1rem] hover:text-green-600 transition-all duration-300 text-sm font-medium hover:scale-105"
+                className={`text-gray-600 text-[1rem] ${link.label === "Settings" && "md:hidden"} hover:text-green-600 transition-all duration-300 text-sm font-medium hover:scale-105`}
               >
                 {link.label}
               </Link>
@@ -63,7 +64,7 @@ export default function Navbar() {
           </div>
 
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4 rounded-full hover:bg-green-100 transition">
             <Link href="/settings" className="p-2 text-gray-700 hover:text-green-600 transition-colors">
               <Image src="/settings.svg" alt="img" width={25} height={25} />
             </Link>
@@ -93,7 +94,6 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/settings">Settings</Link>
           </div>
         )}
       </div>
