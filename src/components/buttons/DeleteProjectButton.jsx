@@ -1,8 +1,10 @@
 "use client"
 import { useState } from "react";
 import { deleteProject } from "@/lib/actions";
+import Loading from "@/app/loading";
 export default function DeleteProjectButton({ projectId, projectName }) {
     const [isDelete, setIsDelete] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleDeleteClick = (e) => {
         e.preventDefault();
@@ -10,10 +12,15 @@ export default function DeleteProjectButton({ projectId, projectName }) {
         setIsDelete(true);
     };
 
-    const handleConfirmClick = (e) => {
+    const handleConfirmClick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        deleteProject(projectId);
+        try {
+            setIsLoading(true);
+            await deleteProject(projectId);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleCancelDelete = (e) => {
@@ -23,13 +30,18 @@ export default function DeleteProjectButton({ projectId, projectName }) {
     };
 
     return (
-        isDelete
-            ?
-            <div className="flex gap-3">
-                <button onClick={handleConfirmClick} className="font-extrabold text-gray-600 hover:text-red-600 transition-colors cursor-pointer">Confirm</button>
-                <button onClick={handleCancelDelete} className="font-extrabold text-gray-600 hover:text-black transition-colors cursor-pointer">Cancel</button>
+        isLoading ? (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/60 backdrop-blur-sm">
+                <Loading />
             </div>
-            :
-            <button onClick={handleDeleteClick} className="text-red-500 hover:text-red-700 underline transition-colors cursor-pointer">Delete</button>
+        ) :
+            isDelete
+                ?
+                <div className="flex gap-3">
+                    <button onClick={handleConfirmClick} disabled={isLoading} className="font-extrabold text-gray-600 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Confirm</button>
+                    <button onClick={handleCancelDelete} disabled={isLoading} className="font-extrabold text-gray-600 hover:text-black transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+                </div>
+                :
+                <button onClick={handleDeleteClick} disabled={isLoading} className="text-red-500 hover:text-red-700 underline transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
     );
 }
