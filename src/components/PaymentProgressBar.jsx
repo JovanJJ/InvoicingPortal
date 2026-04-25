@@ -5,6 +5,9 @@ export default async function PaymentProgressBar({ project, projectId }) {
     const paymentDetails = await fetchPaymentPercentage(projectId);
     const percentage = await projectProgressPercentage(projectId);
     const { fixedRate, currency, totalPaid, paymentPercentage } = paymentDetails;
+    const safePaymentPercentage = Number.isFinite(Number(paymentPercentage))
+        ? Number(paymentPercentage)
+        : 0;
 
     const getStatusColor = (status) => {
         return status === "active"
@@ -29,7 +32,7 @@ export default async function PaymentProgressBar({ project, projectId }) {
                                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">
                                     {project.name}
                                 </h3>
-                                < projectId={project._id.toString()} projectName={project.name} />
+                                <DeleteProjectButton projectId={project._id.toString()} projectName={project.name} />
                             </div>
                             <p className="text-sm text-gray-500 mb-3">{project.clientId.clientName}</p>
                             <div className="flex items-center gap-4">
@@ -112,13 +115,13 @@ export default async function PaymentProgressBar({ project, projectId }) {
                                 Based on payments progress
                             </span>
                             <span className="text-sm font-bold text-gray-900">
-                                {paymentPercentage || 0}%
+                                {safePaymentPercentage}%
                             </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
                                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${paymentPercentage || 0}%` }}
+                                style={{ width: `${safePaymentPercentage}%` }}
                             ></div>
                         </div>
                     </div>

@@ -104,8 +104,15 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
 
   const updateInvoiceNotes = async (e, projectId, updates) => {
     e.preventDefault();
-    const res = await invoiceNotes(projectId, updates);
-    setResponseMessages(res.message);
+    try {
+      setIsLoading(true);
+      const res = await invoiceNotes(projectId, updates);
+      setResponseMessages(res.message);
+      setInoiceUpdates("");
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const handleDeleteInvoice = async (invoiceId) => {
@@ -118,6 +125,16 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
     }
 
   }
+
+  const handleDeletePaymentUpdate = async (invoiceId, paymentId) => {
+    try {
+      setIsLoading(true);
+      await deletePaymentUpdate(invoiceId, paymentId);
+      router.refresh();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     isLoading ? (
@@ -692,7 +709,7 @@ export default function InvoicesList({ invoices, projectNames, clientNames, curr
                                               {payment.note ? payment.note : <span className="italic text-gray-400">No notes provided.</span>}
                                             </div>
                                           </div>
-                                          <div onClick={() => deletePaymentUpdate(invoice._id.toString(), payment._id.toString())} className="text-red-500 cursor-pointer">Delete</div>
+                                          <div onClick={() => handleDeletePaymentUpdate(invoice._id.toString(), payment._id.toString())} className="text-red-500 cursor-pointer">Delete</div>
                                         </div>
                                       );
                                     })
