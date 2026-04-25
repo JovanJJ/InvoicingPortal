@@ -69,6 +69,11 @@ const tips = [
   "Review invoices before sending to make sure dates, totals, and client details are correct.",
 ];
 
+export const metadata = {
+  title: "Help",
+  description: "Learn how to use the InvoiceFlow app.",
+};
+
 export default function HelpPage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8fff7_0%,#ffffff_35%,#f5fbff_100%)]">

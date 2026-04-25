@@ -3,6 +3,11 @@ import getSession from "@/lib/auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import { fetchUser, fetchCurrencies } from "@/lib/actions";
 
+export const metadata = {
+    title: "Settings",
+    description: "Manage your account and preferences.",
+};
+
 export default async function SettingPage() {
     const session = await getSession(authOptions);
     const id = session.user.id;

@@ -30,6 +30,6 @@ export default function DeleteProjectButton({ projectId, projectName }) {
                 <button onClick={handleCancelDelete} className="font-extrabold text-gray-600 hover:text-black transition-colors cursor-pointer">Cancel</button>
             </div>
             :
-            <button onClick={handleDeleteClick} className="text-red-500 hover:text-red-700 underline transition-colors cursor-pointer">Delete project</button>
+            <button onClick={handleDeleteClick} className="text-red-500 hover:text-red-700 underline transition-colors cursor-pointer">Delete</button>
     );
 }

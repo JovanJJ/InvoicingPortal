@@ -5,6 +5,22 @@ import { fetchProjectById, fetchClient, fetchUser, fetchCurrencies, fetchBankIba
 import getSession from '@/lib/auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const project = await fetchProjectById(id);
+  
+  if (!project) {
+    return {
+      title: "Project Not Found",
+    };
+  }
+
+  return {
+    title: project.name,
+    description: `Details and time tracking for ${project.name}`,
+  };
+}
+
 export default async function project({ params }) {
   const { id } = await params;
   const project = await fetchProjectById(id);

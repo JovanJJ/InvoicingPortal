@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "InvoiceFlow - Invoice Generator SaaS",
+  title: {
+    template: "%s | InvoiceFlow",
+    default: "InvoiceFlow - Invoice Generator SaaS",
+  },
   description: "Simplify your invoicing process with InvoiceFlow",
 };
 

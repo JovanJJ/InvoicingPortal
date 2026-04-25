@@ -5,6 +5,11 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const metadata = {
+    title: "Clients",
+    description: "View and manage your clients.",
+};
+
 export default async function ClientsPage() {
     const session = await getServerSession(authOptions);
     if (!session) {

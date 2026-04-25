@@ -29,7 +29,7 @@ export default async function PaymentProgressBar({ project, projectId }) {
                                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">
                                     {project.name}
                                 </h3>
-                                <DeleteProjectButton projectId={project._id.toString()} projectName={project.name} />
+                                < projectId={project._id.toString()} projectName={project.name} />
                             </div>
                             <p className="text-sm text-gray-500 mb-3">{project.clientId.clientName}</p>
                             <div className="flex items-center gap-4">

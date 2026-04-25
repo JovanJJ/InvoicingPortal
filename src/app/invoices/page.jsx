@@ -6,6 +6,11 @@ import getSession from "@/lib/auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 
 
+export const metadata = {
+  title: "Invoices",
+  description: "View and manage your invoices.",
+};
+
 export default async function InvoicePage({ searchParams }) {
   const session = await getSession(authOptions);
 
