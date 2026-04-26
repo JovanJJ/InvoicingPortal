@@ -28,7 +28,7 @@ export default function Navbar() {
     navLinks = [
       { href: '/', label: 'Home' },
       { href: '/contact', label: 'Contact' },
-      { href: '/about', label: 'About' },
+      { href: '/info', label: 'Info' },
     ];
   }
 
