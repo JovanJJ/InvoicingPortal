@@ -20,7 +20,7 @@ export default function Navbar() {
       { href: '/projects', label: 'Projects' },
       { href: '/invoices', label: 'Invoices' },
       { href: '/clients', label: 'Clients' },
-      { href: '/help', label: 'Help' },
+      { href: '/info', label: 'Info' },
       { href: '/contact', label: 'Contact' },
       { href: '/settings', label: 'Settings' },
     ];

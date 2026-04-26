@@ -106,7 +106,7 @@ export default function Home() {
 
           <div className="bg-green-200">
             <div className="relative aspect-video">
-              <Image src="/first-section.png" alt="img" fill quality={100} unoptimized className="object-fit" />
+              <Image src="/first.png" alt="img" fill quality={100} unoptimized className="object-fit" />
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function Home() {
 
           <div className="bg-purple-200 md:pt-0">
             <div className="relative aspect-video">
-              <Image src="/second-section.png" alt="img" quality={100} unoptimized fill className="object-fit" />
+              <Image src="/second.png" alt="img" quality={100} unoptimized fill className="object-fit" />
             </div>
           </div>
         </div>
