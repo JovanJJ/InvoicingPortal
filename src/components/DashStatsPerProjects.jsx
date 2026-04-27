@@ -1,18 +1,23 @@
 "use client"
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import Loading from "@/app/loading";
 
 export default function DashStatsPerProject({ projects, projectStats, currency }) {
+    const [isPending, startTransition] = useTransition();
     const { projectValue, totalPaid, moneyToCharge } = projectStats.dashStats;
     const router = useRouter();
 
     const handleStatsQuery = (e) => {
         const q = e.target.value;
-        if (q) {
-            router.push(`/projects?stats=${q}`);
-        } else {
-            router.push(`/projects`);
-        }
+        startTransition(() => {
+            if (q) {
+                router.push(`/projects?stats=${q}`);
+            } else {
+                router.push(`/projects`);
+            }
+        });
     }
 
 
@@ -34,12 +39,21 @@ export default function DashStatsPerProject({ projects, projectStats, currency }
                         }
                     </select>
                 </div>
-                <div className="border-r border-gray-400"></div>
-                <div>Project value: {projectValue} {currency}</div>
-                <div className="border-r border-gray-400"></div>
-                <div>Received: {totalPaid} {currency}</div>
-                <div className="border-r border-gray-400"></div>
-                <div>Money to charge: {moneyToCharge} {currency}</div>
+                {isPending ?
+                    <div className="flex items-center gap-3 px-6 py-1">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-600" />
+                        <span className="text-sm font-medium text-gray-400">Loading stats...</span>
+                    </div>
+                    :
+                    <>
+                        <div className="border-r border-gray-400"></div>
+                        <div>Project value: {projectValue} {currency}</div>
+                        <div className="border-r border-gray-400"></div>
+                        <div>Received: {totalPaid} {currency}</div>
+                        <div className="border-r border-gray-400"></div>
+                        <div>Money to charge: {moneyToCharge} {currency}</div>
+                    </>
+                }
             </div>
         </div>
     );
