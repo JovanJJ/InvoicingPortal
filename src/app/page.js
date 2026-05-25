@@ -1,6 +1,7 @@
 'use client'
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect } from "react";
 
 import GetStartedButton from "@/components/buttons/GetStartedButton";
@@ -155,8 +156,35 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        <section className="reveal-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mt-12 mb-16 grid gap-6 rounded-3xl border border-emerald-200 bg-white p-6 shadow-xl md:grid-cols-[1fr_auto] md:items-center md:p-8">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
+              Everything just flows
+            </p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
+              Ready to turn tracked work into a finished invoice?
+            </h2>
+            <p className="mt-4 text-base leading-7 text-slate-600 md:text-lg">
+              Create a project and keep the whole workflow moving, or read more
+              about the features in the info section.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+            <div className="flex justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <GetStartedButton />
+            </div>
+            <Link
+              href="/info"
+              target="_blank"
+              className="flex items-center justify-center rounded-2xl border border-slate-300 px-5 py-3 text-lg font-extrabold tracking-tight text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              Read more about features
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   )
 }
-

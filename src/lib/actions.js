@@ -79,7 +79,7 @@ export async function fetchUser(userId) {
     const mappedBankAccounts = (data.bankAccounts || []).map((acc) => {
         let decryptedIban = acc.iban ? decryptIBAN(acc.iban) : acc.iban;
         let maskedIban = decryptedIban;
-        
+
         if (decryptedIban && decryptedIban.length > 8) {
             const start = decryptedIban.slice(0, 4);
             const end = decryptedIban.slice(-4);
@@ -1554,7 +1554,7 @@ export async function submitContactForm(formData) {
             replyTo: email,
             to: process.env.NODE_MAILER_EMAIL,
             subject: `New Contact Request from ${name}`,
-            text: `You have received a new message from ${name} (${email}):\n\n${message}`,
+            text: `(SoundProof panels) You have received a new message from ${name} (${email}):\n\n${message}`,
             html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>`
         });
 
