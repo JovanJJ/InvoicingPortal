@@ -5,12 +5,24 @@ import { handleCreateProject } from '@/lib/actions';
 import Image from 'next/image';
 import Loading from '@/app/loading';
 
-export default function NewProjectCard() {
+export default function NewProjectCard({ countries }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({});
     const [message, setMessage] = useState("");
     const [success, setSuccess] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    const filteredCountries = countries?.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const selectCountry = (country) => {
+        setFormData({ ...formData, clientCountry: country.name });
+        setSearchTerm(country.name);
+        setShowDropdown(false);
+    }
 
     const handleChange = async (e) => {
         setFormData({
@@ -119,19 +131,36 @@ export default function NewProjectCard() {
                             </div>
 
 
-                            <div>
+                            <div className="relative">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Client Country
                                 </label>
                                 <input
-                                    onChange={handleChange}
-                                    value={formData.clientCountry || ""}
-                                    name="clientCountry"
                                     type="text"
-                                    placeholder="Enter country"
+                                    placeholder="Select or search country..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setShowDropdown(true);
+                                        setFormData(prev => ({ ...prev, clientCountry: e.target.value }));
+                                    }}
+                                    onFocus={() => setShowDropdown(true)}
                                     disabled={isLoading}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                                 />
+                                {showDropdown && filteredCountries.length > 0 && (
+                                    <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        {filteredCountries.map((country) => (
+                                            <li
+                                                key={country.code || country._id}
+                                                onClick={() => selectCountry(country)}
+                                                className="px-4 py-2 hover:bg-green-50 cursor-pointer text-gray-900 border-b border-gray-100 last:border-0 text-sm"
+                                            >
+                                                {country.name}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
 
                             <div>

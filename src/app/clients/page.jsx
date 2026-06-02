@@ -1,5 +1,5 @@
 import ClientsCardsGrid from "./components/ClinetsCardsGrid";
-import { fetchProjectsAndClients } from "@/lib/actions";
+import { fetchProjectsAndClients, fetchCountries } from "@/lib/actions";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default async function ClientsPage() {
     const id = session.user.id;
 
     const projectsAndClients = await fetchProjectsAndClients(id) || [];
+    const countries = await fetchCountries();
 
     return (
         <div className="">
@@ -26,7 +27,7 @@ export default async function ClientsPage() {
                 {projectsAndClients.length === 0 ?
                     (<div className="mt-10 font-extrabold">No Clients to display. <span className="text-[1rem] font-normal">(Clienst will be visible after you <Link href="/projects" className="underline" >create project)</Link></span></div>)
                     :
-                    (<ClientsCardsGrid projectsAndClients={projectsAndClients} />)
+                    (<ClientsCardsGrid projectsAndClients={projectsAndClients} countries={countries} />)
                 }
 
             </div>

@@ -1,12 +1,56 @@
 'use server';
 
 import Project from "./models/Project";
-import User from "./models/User";
+import Country from "./models/Country";
 import { connectDB } from "./connectdb";
+import { revalidatePath } from "next/cache";
+
+// Function to insert countries into the database
+export async function insertCountries() {
+    await connectDB();
+    const countriesData = (await import('../utils/countries.json')).default;
+
+    for (const country of countriesData.countries) {
+        try {
+            const existingCountry = await Country.findOne({ code: country.code });
+            if (!existingCountry) {
+                await Country.create({
+                    code: country.code,
+                    name: country.name,
+                });
+                console.log(`Inserted country: ${country.name}`);
+            } else {
+                console.log(`Country already exists: ${country.name}`);
+            }
+        } catch (error) {
+            console.error(`Error inserting country ${country.name}:`, error);
+        }
+    }
+}
+
+// Function to fetch all countries from the database
+export async function fetchCountries() {
+    await connectDB();
+    try {
+        let countries = await Country.find().sort({ name: 1 }).lean();
+        
+        if (countries.length === 0) {
+            await insertCountries();
+            countries = await Country.find().sort({ name: 1 }).lean();
+        }
+        
+        return JSON.parse(JSON.stringify(countries));
+    } catch (error) {
+        console.error("Error fetching countries:", error);
+        return [];
+    }
+}
+
+
+import User from "./models/User";
 import Client from "./models/Client.js";
 import Invoice from "./models/Invoice";
 import { generateInvoiceNumber } from "@/components/helper/GenerateInvoiceNumber";
-import { revalidatePath } from "next/cache";
 import TimeEntry from "./models/TimeEntry";
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF } from "@/components/PDF/InvoicePDF";
