@@ -5,8 +5,11 @@ export default async function PaymentProgressBar({ project, projectId }) {
     const paymentDetails = await fetchPaymentPercentage(projectId);
     const percentage = await projectProgressPercentage(projectId);
     const { fixedRate, currency, totalPaid, paymentPercentage } = paymentDetails;
+    const safeHourlyPercentage = Number.isFinite(Number(percentage))
+        ? Math.min(Math.max(Number(percentage), 0), 100)
+        : 0;
     const safePaymentPercentage = Number.isFinite(Number(paymentPercentage))
-        ? Number(paymentPercentage)
+        ? Math.min(Math.max(Number(paymentPercentage), 0), 100)
         : 0;
 
     const getStatusColor = (status) => {
@@ -58,13 +61,13 @@ export default async function PaymentProgressBar({ project, projectId }) {
                                 Progress based on estimated hours
                             </span>
                             <span className="text-sm font-bold text-gray-900">
-                                {percentage || 0}%
+                                {safeHourlyPercentage}%
                             </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                             <div
                                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${percentage}%` }}
+                                style={{ width: `${safeHourlyPercentage}%` }}
                             ></div>
                         </div>
                     </div>

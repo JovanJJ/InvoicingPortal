@@ -106,7 +106,7 @@ export default function ProjectHeader({ project, client, bankAccounts, currencie
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 />
               ) : (
-                <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
+                <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 font-semibold">
                   {formData.name}
                 </div>
               )}
@@ -123,7 +123,7 @@ export default function ProjectHeader({ project, client, bankAccounts, currencie
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 />
               ) : (
-                <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
+                <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 font-semibold">
                   {client.clientName}
                 </div>
               )}
@@ -181,39 +181,43 @@ export default function ProjectHeader({ project, client, bankAccounts, currencie
                   ))}
                 </select>
               ) : (
-                <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold">
+                <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 font-semibold">
                   {formData.currency}
                 </div>
               )}
             </div>
 
 
-            <div className='max-w-[80px]'>
+            <div className="lg:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Rate</label>
-              <div className='flex gap-2'>
-                <div className='flex items-center justify-center gap-2'>
-                  <span className="block text-xs font-medium text-gray-600 mb-1">hourly</span>
-                  <input disabled={!isEditing} type="radio" name="paymentType" value="hourly" checked={formData.paymentType === 'hourly'} onChange={handleInputChange} />
+              <div className="inline-grid gap-2 sm:grid-cols-[auto_140px] sm:items-end">
+                <div className="flex w-fit gap-2">
+                  <label className="flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+                    <input disabled={!isEditing} type="radio" name="paymentType" value="hourly" checked={formData.paymentType === 'hourly'} onChange={handleInputChange} />
+                    <span>Hourly</span>
+                  </label>
+                  <label className="flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+                    <input disabled={!isEditing} type="radio" name="paymentType" value="fixed" checked={formData.paymentType === 'fixed'} onChange={handleInputChange} />
+                    <span>Fixed</span>
+                  </label>
                 </div>
-                <div className='flex items-center justify-center gap-2'>
-                  <span className="block text-xs font-medium text-gray-600 mb-1">fixed</span>
-                  <input disabled={!isEditing} type="radio" name="paymentType" value="fixed" checked={formData.paymentType === 'fixed'} onChange={handleInputChange} />
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Type rate</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="rate"
+                      value={formData.rate || "0"}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    />
+                  ) : (
+                    <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 font-semibold">
+                      {formData.rate || 0}
+                    </div>
+                  )}
                 </div>
               </div>
-              {isEditing ? (
-                <input
-                  type="text"
-                  name="rate"
-                  value={formData.rate || ""}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                />
-              ) : (
-                <div className="w-full px-4 py-2 rounded-lg text-gray-900 font-semibold flex gap-5">
-                  {formData.rate}
-
-                </div>
-              )}
             </div>
 
             <div>

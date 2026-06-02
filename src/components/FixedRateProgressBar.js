@@ -2,6 +2,10 @@
 
 export default function FixedRateProgressBar({ fixedRateProgressData }) {
     const { projectName, clientName, projectStatus, totalLoggedHours, fixedRate, totalPaid, currency, paymentPercentage } = fixedRateProgressData;
+    const safePaymentPercentage = Number.isFinite(Number(paymentPercentage))
+        ? Math.min(Math.max(Number(paymentPercentage), 0), 100)
+        : 0;
+
     const getStatusColor = (status) => {
         return status === "active"
             ? "bg-blue-100 text-blue-800"
@@ -49,13 +53,13 @@ export default function FixedRateProgressBar({ fixedRateProgressData }) {
                             Based on payments progress
                         </span>
                         <span className="text-sm font-bold text-gray-900">
-                            {paymentPercentage || 0}%
+                            {safePaymentPercentage}%
                         </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                         <div
                             className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${paymentPercentage || 0}%` }}
+                            style={{ width: `${safePaymentPercentage}%` }}
                         ></div>
                     </div>
                 </div>

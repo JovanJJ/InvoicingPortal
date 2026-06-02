@@ -18,7 +18,9 @@ export default async function DashboardStats({ searchParams }) {
     const { success, currency } = await fetchUserDefaultCurrnecy(id);
     const projectsList = await fetchProjectList(id, search);
     const earnings = await calculateEarnings(id, currency);
+    console.log(earnings);
     const projectsValue = await projectsValueInBaseCurrency(id, currency);
+    console.log(projectsValue);
     const totalLoggedHours = await fetchLoggedHours(id);
     const chargeMoney = await moneyToCharge(id, currency);
     const { message, projects } = await fetchProjects();

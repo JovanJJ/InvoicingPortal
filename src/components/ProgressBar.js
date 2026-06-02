@@ -8,7 +8,13 @@ export default function ProgressBar({ estimatedHours, seconds, projectId }) {
 
   const [durationSeconds, setDurationSeconds] = useState(0);
   const totalSeconds = durationSeconds + seconds;
-  const percentage = (totalSeconds / 3600) / estimatedHours * 100;
+  const estimatedHoursNumber = Number(estimatedHours) || 0;
+  const rawPercentage = estimatedHoursNumber > 0
+    ? (totalSeconds / 3600) / estimatedHoursNumber * 100
+    : 0;
+  const percentage = Number.isFinite(rawPercentage)
+    ? Math.min(Math.max(rawPercentage, 0), 100)
+    : 0;
 
   const { data: session, status } = useSession();
 
@@ -21,7 +27,7 @@ export default function ProgressBar({ estimatedHours, seconds, projectId }) {
       }
       getPercantage();
     }
-  }, [userId, status, session]);
+  }, [userId, status, session, projectId]);
 
 
   function formatDuration(totalSeconds) {
@@ -46,7 +52,7 @@ export default function ProgressBar({ estimatedHours, seconds, projectId }) {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900">Progress</h3>
-            <span className="text-2xl font-bold text-green-600">{!percentage? 0 : percentage.toFixed()}% <span className="text-[18px]">(Estimated hours: {estimatedHours})</span></span>
+            <span className="text-2xl font-bold text-green-600">{percentage.toFixed()}% <span className="text-[18px]">(Estimated hours: {estimatedHoursNumber})</span></span>
           </div>
 
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">

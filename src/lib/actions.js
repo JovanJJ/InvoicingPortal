@@ -545,7 +545,8 @@ export async function fetchProgressPercentage(projectId) {
 export async function projectProgressPercentage(projectId) {
     await connectDB();
     const project = await Project.findById(projectId).select("estimatedHours").lean();
-    if (!project || !project.estimatedHours || project.estimatedHours === 0) {
+    const estimatedHours = Number(project?.estimatedHours || 0);
+    if (!project || estimatedHours <= 0) {
         return 0;
     }
 
@@ -554,10 +555,11 @@ export async function projectProgressPercentage(projectId) {
         return 0;
     }
 
-    const totalDurationInSeconds = timeEntries.reduce((acc, entry) => acc + (entry.duration || 0), 0);
-    const percentage = (totalDurationInSeconds / 60) / Number(project.estimatedHours) * 100;
+    const totalDurationInMinutes = timeEntries.reduce((acc, entry) => acc + (Number(entry.duration) || 0), 0);
+    const percentage = (totalDurationInMinutes / 60) / estimatedHours * 100;
+    const safePercentage = Number.isFinite(percentage) ? Math.min(Math.max(percentage, 0), 100) : 0;
 
-    return percentage.toFixed(2);
+    return safePercentage.toFixed(2);
 }
 
 
@@ -617,51 +619,58 @@ export async function generateInvoicePDF(invoiceData) {
 
 
 export async function uploadProfileImage(formData) {
-    cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-    })
+    try {
+        await connectDB();
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+        })
 
-    const session = await getSession(authOptions);
-    if (!session) throw new Error('Unauthorized')
+        const session = await getSession();
+        if (!session) return { success: false, message: 'Unauthorized' };
 
-    const file = formData.get('image')
-    if (!file) throw new Error('No file provided')
+        const file = formData.get('image')
+        if (!file) return { success: false, message: 'No file provided' };
 
+        const validTypes = ['image/jpeg', 'image/png', 'image/x-png', 'image/webp']
+        if (!validTypes.includes(file.type)) {
+            return { success: false, message: `Only JPG, PNG and WEBP allowed. Received ${file.type || 'unknown file type'}` };
+        }
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
-    if (!validTypes.includes(file.type)) {
-        throw new Error('Only JPG, PNG and WEBP allowed')
+        if (file.size > 10 * 1024 * 1024) {
+            return { success: false, message: 'Image must be under 10MB' };
+        }
+
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                {
+                    folder: 'freelance-app/profiles',
+                    public_id: `user-${session.user.id}`,
+                    overwrite: true,
+                    invalidate: true,
+                    resource_type: 'image'
+                },
+                (error, result) => {
+                    if (error) reject(error)
+                    else resolve(result)
+                }
+            ).end(buffer)
+        })
+
+        await User.findByIdAndUpdate(session.user.id, {
+            logo: result.secure_url
+        })
+
+        revalidatePath("/settings");
+        return { success: true, url: result.secure_url };
+    } catch (error) {
+        console.error("Upload error:", error);
+        return { success: false, message: error.message || "Failed to upload image" };
     }
-
-
-    if (file.size > 2 * 1024 * 1024) {
-        throw new Error('Image must be under 2MB')
-    }
-
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-            {
-                folder: 'freelance-app/profiles',
-                public_id: `user-${session.user.id}`,
-
-            },
-            (error, result) => {
-                if (error) reject(error)
-                else resolve(result)
-            }
-        ).end(buffer)
-    })
-
-    await User.findByIdAndUpdate(session.user.id, {
-        logo: result.secure_url
-    })
-
-    return result.secure_url
 }
 
 export async function updateUserSettings(userId, data) {
@@ -1004,17 +1013,19 @@ export async function projectsValueInBaseCurrency(userId, currency) {
     await connectDB();
     const rates = await calculateInBaseCurrency(baseCurrency);
 
-    const projects = await Project.find({ userId: userId, status: "active" }).select("totalValue currency").lean();
+    const projects = await Project.find({ userId: userId, status: "active" }).select("totalValue currency taxRate").lean();
 
     const projectsValue = projects.reduce((acc, project) => {
-        const value = project.totalValue;
+        const value = Number(project.totalValue || 0);
+        const taxRate = Number(project.taxRate || 0);
+        const valueWithTax = value + (value * (taxRate / 100));
         const currency = project.currency;
 
         if (currency === rates.base_code) {
-            return acc + Number(value);
+            return acc + Number(valueWithTax);
         }
 
-        const convertedValue = (Number(value) / Number(rates.conversion_rates[currency])) * Number(rates.conversion_rates[baseCurrency]);
+        const convertedValue = (Number(valueWithTax) / Number(rates.conversion_rates[currency])) * Number(rates.conversion_rates[baseCurrency]);
         return acc + convertedValue;
     }, 0);
 
@@ -1030,18 +1041,21 @@ export async function moneyToCharge(userId, currency) {
 
 export async function fetchPaymentPercentage(projectId) {
     await connectDB();
-    const project = await Project.find({ _id: projectId, paymentType: "fixed" }).select("rate currency").lean();
+    const project = await Project.find({ _id: projectId, paymentType: "fixed" }).select("rate currency taxRate").lean();
     if (project.length === 0) { return { fixedRate: 0, currency: "", totalPaid: 0, paymentPercentage: 0 } }
-    const projectRate = project[0].rate;
+    const projectRate = Number(project[0].rate || 0);
+    const taxRate = Number(project[0].taxRate || 0);
+    const fixedRate = projectRate + (projectRate * (taxRate / 100));
     const currency = project[0].currency;
 
     const payments = await Invoice.find({ projectId: projectId }).select("totalPaid").lean();
 
     const totalPaid = payments.reduce((sum, p) => sum + (Number(p.totalPaid) || 0), 0);
 
-    const percentage = (Number(totalPaid) / Number(projectRate) * 100).toFixed(0);
+    const percentage = fixedRate > 0 ? (Number(totalPaid) / fixedRate) * 100 : 0;
+    const safePercentage = Number.isFinite(percentage) ? Math.min(Math.max(percentage, 0), 100) : 0;
 
-    return { fixedRate: projectRate, currency: currency, totalPaid: totalPaid, paymentPercentage: percentage }
+    return { fixedRate: Number(fixedRate.toFixed(2)), currency: currency, totalPaid: totalPaid, paymentPercentage: safePercentage.toFixed(0) }
 }
 
 export async function fetchProjectsNames(userId) {
@@ -1469,10 +1483,23 @@ export async function sendInvoiceEmail(invoiceData) {
 
 
 export async function deleteTimeEntry(entryId) {
-    await connectDB();
-    const entry = await TimeEntry.findByIdAndDelete(entryId);
-    revalidatePath("/projects", "layout");
-    revalidatePath("/invoices", "layout");
+    try {
+        await connectDB();
+        const entry = await TimeEntry.findByIdAndDelete(entryId).select("projectId").lean();
+
+        if (!entry) {
+            return { success: false, message: "Time entry not found" };
+        }
+
+        await calculateLogedHours(entry.projectId.toString());
+        revalidatePath("/projects", "layout");
+        revalidatePath("/invoices", "layout");
+
+        return { success: true, message: "Time entry deleted" };
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: "Something went wrong, please try again" };
+    }
 }
 
 export async function deleteProject(projectId) {
@@ -1495,10 +1522,11 @@ export async function updateEntry(updates) {
             updatedAt: new Date(updates.updatedAt || updates.createdAt),
             description: updates.description
         }
-        const res = await TimeEntry.findByIdAndUpdate(id, updatesObj, { new: true, timestamps: false }).lean();
+        const res = await TimeEntry.findByIdAndUpdate(id, updatesObj, { new: true, timestamps: false }).select("projectId").lean();
         if (res) {
-            calculateProjectValue
+            await calculateLogedHours(res.projectId.toString());
             revalidatePath("/projects", "layout");
+            revalidatePath("/invoices", "layout");
             return { success: true, message: "Successfully updated session" }
         }
         if (!res) {
@@ -1529,11 +1557,13 @@ export async function projectDashStats(projectId, currency) {
     if (!projectId) return null;
     try {
         const rates = await calculateInBaseCurrency(currency);
-        const project = await Project.findById(projectId).select("totalValue currency").lean();
+        const project = await Project.findById(projectId).select("totalValue currency taxRate").lean();
 
         if (!project) return null;
 
-        let projectValue = project.totalValue || 0;
+        const value = Number(project.totalValue || 0);
+        const taxRate = Number(project.taxRate || 0);
+        let projectValue = value + (value * (taxRate / 100));
         const projectCurrency = project.currency || "USD";
 
         if (projectCurrency !== rates.base_code) {

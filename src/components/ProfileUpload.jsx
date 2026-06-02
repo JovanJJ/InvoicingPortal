@@ -9,14 +9,38 @@ export default function ImageUpload({ currentImage }) {
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
+  function getImageDetails(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file)
+      const img = new window.Image()
 
-  function handleFileSelect(e) {
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        resolve(`${img.naturalWidth}x${img.naturalHeight}`)
+      }
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      }
+
+      img.src = url
+    })
+  }
+
+  async function getFileErrorDetails(file) {
+    const sizeInKb = (file.size / 1024).toFixed(0)
+    const dimensions = await getImageDetails(file)
+    return `${file.name}, ${file.type || 'unknown type'}, ${sizeInKb}KB${dimensions ? `, ${dimensions}px` : ''}`
+  }
+
+  async function handleFileSelect(e) {
     const file = e.target.files[0]
     if (!file) return
 
 
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image must be under 2MB')
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image must be under 10MB')
       return
     }
 
@@ -36,12 +60,21 @@ export default function ImageUpload({ currentImage }) {
     try {
       const formData = new FormData()
       formData.append('image', file)
-      const url = await uploadProfileImage(formData)
-      setPreview(url)
+      const res = await uploadProfileImage(formData)
+      if (res.success) {
+        setPreview(res.url)
+        setError(null)
+      } else {
+        const details = await getFileErrorDetails(file)
+        setError(`${res.message} (${details})`)
+        setPreview(currentImage)
+      }
     } catch (err) {
-      setError(err.message)
+      const details = await getFileErrorDetails(file)
+      setError(`${err.message} (${details})`)
       setPreview(currentImage)
     } finally {
+      if (inputRef.current) inputRef.current.value = ''
       setLoading(false)
     }
   }
@@ -105,7 +138,7 @@ export default function ImageUpload({ currentImage }) {
       )}
 
 
-      <p className="text-xs text-gray-400">JPG, PNG or WEBP, max 2MB</p>
+      <p className="text-xs text-gray-400">JPG, PNG or WEBP, max 10MB</p>
     </div>
   );
 
