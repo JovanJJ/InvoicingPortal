@@ -1138,6 +1138,7 @@ export async function fetchProjectBankAccount(projectId, userId) {
 
 
 export async function fetchBankIban(userId, projectBankId) {
+    await connectDB();
     const user = await User.findById(userId).select("bankAccounts").lean();
     let bankAccount = null;
     if (projectBankId) {
@@ -1145,9 +1146,13 @@ export async function fetchBankIban(userId, projectBankId) {
     } else {
         bankAccount = user.bankAccounts.find(b => b.isDefault);
     }
-
     if (bankAccount) {
-        return { accountOwnerFirstName: bankAccount.accountOwnerFirstName, accountOwnerLastName: bankAccount.accountOwnerLastName, bankName: bankAccount.bankName, iban: bankAccount.iban }
+        return {
+            accountOwnerFirstName: bankAccount.accountOwnerFirstName,
+            accountOwnerLastName: bankAccount.accountOwnerLastName,
+            bankName: bankAccount.bankName,
+            iban: decryptIBAN(bankAccount.iban)
+        }
     }
 
 }

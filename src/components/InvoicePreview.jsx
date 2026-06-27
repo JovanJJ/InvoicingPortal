@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { formatDate } from './helper/formatDate';
 import formatDurationForInvoice from './FormatDurationForInvoice';
@@ -22,7 +23,6 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const [deleteEntry, setDeleteEntry] = useState(false);
     const [localUnbilled, setLocalUnbilled] = useState(() => (timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
     const [isLoading, setIsLoading] = useState(false);
-
 
     useEffect(() => {
         setLocalUnbilled((timeEntries || []).filter(e => e.invoiceId === null || e.invoiceId === undefined));
@@ -48,9 +48,13 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const tax = (Number(project.taxRate) / 100 * subtotal).toFixed(2);
     const total = (Number(subtotal) + Number(tax)).toFixed(2);
 
-
+    const bankDetailsAvailable = bankIban && bankIban.bankName && bankIban.iban && bankIban.accountOwnerFirstName && bankIban.accountOwnerLastName;
 
     const handleSaveInvoice = async () => {
+        if (!bankDetailsAvailable) {
+            setMessage("Add a bank account in Settings before saving the invoice.");
+            return;
+        }
         try {
             setIsLoading(true);
             const res = await saveInvoice(project, client, unbilledEntries, user, dueDate, note);
@@ -83,7 +87,7 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
     const toggleInvoice = () => setIsOpen(!isOpen);
 
     return (
-        !project.rate ? <p className='inline ml-10 text-red-400'>"Make sure you added project rate"</p>
+        !project.rate ? <p className='inline ml-10 text-red-400'>Make sure you added project rate</p>
             :
 
             <div className="absolute inset-0 backdrop-blur-[2px] z-40 transition-opacity py-8 px-4 sm:px-6 lg:px-8">
@@ -97,8 +101,8 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
                         <div className="flex justify-between items-start mb-10">
                             <div>
                                 {userImage && (
-                                    <div className="mb-4">
-                                        <img src={userImage} className="w-20 h-20 object-contain" alt="Logo" />
+                                    <div className="mb-4 relative w-20 h-20">
+                                        <Image src={userImage} fill className="object-contain" alt="Logo" />
                                         <p className="text-[10px] text-gray-400 mt-1 italic tracking-tight uppercase">You can change picture in settings.</p>
                                     </div>
                                 )}
@@ -287,9 +291,18 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
                                 <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded mb-10">
                                     <h4 className="font-bold text-gray-900 text-sm mb-2">Payment Details</h4>
-                                    <p className="text-sm text-gray-700 mb-1">Bank: {bankIban.bankName}</p>
-                                    <p className="text-sm text-gray-700 mb-1">Account Owner: {bankIban.accountOwnerFirstName} {bankIban.accountOwnerLastName}</p>
-                                    <p className="text-sm text-gray-700 mb-1">IBAN: {bankIban.iban}</p>
+                                    {!bankDetailsAvailable ? (
+                                        <div className="text-sm text-red-700 mb-3">
+                                            <p className="font-semibold">Bank account missing</p>
+                                            <p>Please add a bank account in Settings before saving or generating invoices.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-gray-700 mb-1">Bank: {bankIban.bankName}</p>
+                                            <p className="text-sm text-gray-700 mb-1">Account Owner: {bankIban.accountOwnerFirstName} {bankIban.accountOwnerLastName}</p>
+                                            <p className="text-sm text-gray-700 mb-1">IBAN: {bankIban.iban}</p>
+                                        </>
+                                    )}
                                     <p className="text-sm text-gray-700 mb-2">Reference: (This will be filed on invoice generation)</p>
                                     {project.notes && <p className="text-sm text-gray-700 italic">{project.notes}</p>}
                                     <div className="text-sm text-gray-700 mb-2">
@@ -313,12 +326,28 @@ export default function InvoicePreview({ handleInvoicePreview, project, client, 
 
                                 <div className="text-center my-4 space-x-5">
                                     {isLoading ? (
-                                        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/60 backdrop-blur-sm">
+                                        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/60 backdrop-blur-sm">
                                             <Loading />
                                         </div>
-                                    )
-                                        :
-                                        !message && <button onClick={handleSaveInvoice} className='px-2 py-2 bg-blue-300 rounded active:bg-blue-200 cursor-pointer'>Save Invoice</button>}
+                                    ) : (
+                                        !message && (
+                                            <button
+                                                onClick={handleSaveInvoice}
+                                                disabled={!bankDetailsAvailable}
+                                                className={`px-2 py-2 rounded ${bankDetailsAvailable ? 'bg-blue-300 hover:bg-blue-400' : 'bg-gray-300 cursor-not-allowed'} transition-colors`}
+                                            >
+                                                Save Invoice
+                                            </button>
+                                        )
+                                    )}
+                                    {!bankDetailsAvailable && (
+                                        <button
+                                            onClick={() => router.push('/settings')}
+                                            className='px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors'
+                                        >
+                                            Add Bank Account in Settings
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleInvoicePreview(false)}
                                         className={`${message ? "bg-blue-600" : "bg-red-600"} text-white px-4 py-2 cursor-pointer rounded hover:bg-blue-700 transition-colors`}
